@@ -2,11 +2,12 @@
 import { escapeHTML, debounce } from '../utils/dom.js';
 import { CLASS_LABEL, toIPA } from '../engine/phonetics.js';
 import { findRhymes } from '../engine/rhymeDictionary.js';
+import { FAMILY, consonantLabel } from '../engine/consonance.js';
 
 const vowelChip = (cls) => `<span class="v" style="--vc: var(--v-${cls})">${CLASS_LABEL[cls] ?? cls}</span>`;
 
 export function createInspector(els, { onInsert }) {
-  const { line, lineNo, syl, signature, ipa, rhyme, reps, section, rhymeInput, rhymeResults } = els;
+  const { line, lineNo, syl, signature, ipa, rhyme, cons, reps, section, rhymeInput, rhymeResults } = els;
   let userTyped = false;
   let strict = false;
 
@@ -43,12 +44,14 @@ export function createInspector(els, { onInsert }) {
       signature.innerHTML = '<span class="empty">Ligne vide</span>';
       ipa.textContent = '';
       rhyme.textContent = '';
+      cons.innerHTML = '';
     } else if (l.isMeta) {
       line.textContent = l.text;
       syl.textContent = '—';
       signature.innerHTML = '<span class="empty">Titre de section</span>';
       ipa.textContent = '';
       rhyme.textContent = '';
+      cons.innerHTML = '';
     } else {
       line.textContent = l.text;
       syl.textContent = l.reference !== null ? `${l.syllables}  (réf. ${l.reference})` : String(l.syllables);
@@ -59,6 +62,9 @@ export function createInspector(els, { onInsert }) {
       ipa.textContent = '/' + l.words.map((w) => toIPA(w.phon)).join(' ') + '/';
       const last = l.words.at(-1);
       rhyme.innerHTML = last?.tonic ? `${vowelChip(last.tonic)} <span class="muted">${escapeHTML(toIPA(last.coda))}</span>` : '';
+      cons.innerHTML = l.cons.length
+        ? l.cons.map((c) => `<span class="cchip" data-c="${FAMILY[c.ph] ?? 'k'}">${escapeHTML(consonantLabel(c.ph))} <b>×${c.count}</b></span>`).join('')
+        : '<span class="empty">Aucune dans cette ligne</span>';
       if (!userTyped && last) { rhymeInput.value = last.text.split("'").pop(); searchRhymes(); }
     }
 

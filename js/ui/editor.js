@@ -7,6 +7,7 @@
  */
 import { escapeHTML } from '../utils/dom.js';
 import { beatMarkers } from '../engine/analyzer.js';
+import { FAMILY } from '../engine/consonance.js';
 
 export function createEditor(root, { onInput, onCaret }) {
   const ta = root.querySelector('.ed-input');
@@ -43,18 +44,40 @@ export function createEditor(root, { onInput, onCaret }) {
   for (const ev of ['keyup', 'click', 'focus', 'select']) ta.addEventListener(ev, updateCaret);
   document.addEventListener('selectionchange', () => { if (document.activeElement === ta) updateCaret(); });
 
-  /** Un mot = <span.w> contenant une <span.s> par syllabe (c'est la syllabe qui porte la couleur). */
+  /** Mode « Consonnes » : seules les lettres des sons consonnes retenus sont colorées. */
+  function consonantHTML(w) {
+    const spans = [];
+    for (const c of w.cons) {
+      if (!c.hl) continue;
+      const last = spans.at(-1);
+      if (last && last.s === c.s && last.e === c.e) continue;               // « x » = deux sons sur les mêmes lettres
+      spans.push({ s: c.s, e: c.e, ph: c.ph });
+    }
+    spans.sort((a, b) => a.s - b.s);
+    let html = '';
+    let pos = 0;
+    for (const sp of spans) {
+      if (sp.s < pos) continue;
+      html += escapeHTML(w.text.slice(pos, sp.s))
+        + `<span class="c" data-c="${FAMILY[sp.ph] ?? 'k'}">${escapeHTML(w.text.slice(sp.s, sp.e))}</span>`;
+      pos = sp.e;
+    }
+    return html + escapeHTML(w.text.slice(pos));
+  }
+
+  /** Un mot = <span.w> contenant une <span.s> par syllabe (c'est la syllabe qui porte la couleur des voyelles). */
   function wordHTML(w, opts, beats) {
     let html = '';
     // Repères de grille : positionnés en absolu dans le mot, ils ne changent jamais les retours à la ligne
     if (beats) beats.forEach((b, k) => { html += `<i class="beat${b % 2 === 0 ? ' snare' : ''}" data-b="${b}" data-k="${k}"></i>`; });
+    if (opts.mode === 'consonnes') return html + (opts.xray ? consonantHTML(w) : escapeHTML(w.text));
     if (!w.syls.length) return html + escapeHTML(w.text);
     for (const sy of w.syls) {
       const attrs = [];
       const cls = ['s'];
       if (opts.xray && sy.hl) attrs.push(`data-v="${sy.hl}"`);
-      if (sy.rich) cls.push('rich');
-      if (sy.endRhyme) cls.push('end');
+      if (opts.xray && sy.rich) cls.push('rich');
+      if (opts.xray && sy.endRhyme) cls.push('end');
       html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${escapeHTML(w.text.slice(sy.start, sy.end))}</span>`;
     }
     return html;

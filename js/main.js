@@ -9,6 +9,7 @@ import { $, $$, debounce, rafThrottle } from './utils/dom.js';
 import { analyzeText } from './engine/analyzer.js';
 import { CLASS_LABEL, clearCache } from './engine/phonetics.js';
 import { clearSyllableCache } from './engine/syllabify.js';
+import { clearConsonanceCache } from './engine/consonance.js';
 import { markRepetitions, repeatsInRange, topTics } from './engine/repetition.js';
 import { registerWords, rebuildFromLexicon } from './engine/rhymeDictionary.js';
 import { loadLexique } from './engine/lexicon.js';
@@ -32,10 +33,8 @@ j'attends le jour, mais le jour me fuit
 [Refrain]
 on garde la flamme, on garde le cap
 même quand la vie nous frappe
-y'a PerSonne qui m'arrête, Perf et PresqueSans Père
+y'a personne qui m'arrête, perf et presque sans père
 le monde peut tourner, rien ne m'attrape`;
-
-// Une majuscule dans un mot est volontaire : elle met la syllabe en valeur (voir le texte d'aide dans Analyse).
 
 /* ====================== État ====================== */
 const state = {
@@ -82,7 +81,7 @@ const sidebar = createSidebar(
 
 const inspector = createInspector({
   line: $('#insLine'), lineNo: $('#insLineNo'), syl: $('#insSyl'), signature: $('#insSignature'),
-  ipa: $('#insIpa'), rhyme: $('#insRhyme'), reps: $('#insReps'), section: $('#insSection'),
+  ipa: $('#insIpa'), rhyme: $('#insRhyme'), cons: $('#insCons'), reps: $('#insReps'), section: $('#insSection'),
   rhymeInput: $('#rhymeInput'), rhymeResults: $('#rhymeResults'),
 }, { onInsert: (w) => { setView('write'); editor.insertAtCursor(w); } });
 
@@ -104,7 +103,7 @@ const analyze = rafThrottle(() => {
   const { settings: s } = state;
   state.analysis = analyzeText(editor.getText(), { elision: s.elision, strict: s.strict, mode: s.mode });
   state.sections = markRepetitions(state.analysis.lines);
-  editor.render(state.analysis, { xray: s.xray, grid: s.grid });
+  editor.render(state.analysis, { xray: s.xray, grid: s.grid, mode: s.mode });
   updateInspector();
 });
 
@@ -211,10 +210,10 @@ function setSetting(key, value) {
 for (const [id, key] of Object.entries(TOGGLES)) $(`#${id}`).addEventListener('click', () => setSetting(key, !state.settings[key]));
 $$('#segMode button').forEach((b) => b.addEventListener('click', () => setSetting('mode', b.dataset.mode)));
 
-/* Légende des couleurs */
+/* Légende des couleurs (assonances) */
 $('#legend').innerHTML = ['a', 'e', 'E', 'i', 'o', 'u', 'y', 'eu', 'an', 'in', 'on', 'wa']
   .map((c) => `<span class="chip"><span class="dot" style="--vc: var(--v-${c})"></span>${CLASS_LABEL[c]}</span>`).join('')
-  + '<span class="chip muted">· surligné = assonance · encadré = rime de fin · Majuscule = syllabe mise en valeur</span>';
+  + '<span class="chip muted">· surligné = assonance · encadré = rime de fin · mode Consonnes : sons consonnes qui reviennent</span>';
 
 /* ====================== Raccourcis clavier ====================== */
 window.addEventListener('keydown', (e) => {
@@ -286,7 +285,7 @@ vv?.addEventListener('scroll', fitViewport);
 window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
 fitViewport();
 
-const resetCaches = () => { clearCache(); clearSyllableCache(); };
+const resetCaches = () => { clearCache(); clearSyllableCache(); clearConsonanceCache(); };
 
 /* ====================== Dictionnaire externe (optionnel) ====================== */
 // Lexique 3 (CC BY-SA 4.0, New & Pallier) converti en { mot: phonétique }, trié par fréquence.

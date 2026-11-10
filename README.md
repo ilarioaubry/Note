@@ -27,6 +27,7 @@ js/
 │   ├── exceptions.js      Listes d'exceptions (-ent prononcé, -er en [ɛʁ], -t final…)
 │   ├── lexicon.js         Dictionnaire (argot, anglicismes) + loadLexique() pour Lexique3
 │   ├── syllabify.js       Découpe le mot écrit en syllabes (surlignage par syllabe)
+│   ├── consonance.js      Allitérations / consonances (sons consonnes qui reviennent)
 │   ├── numbers.js         16 → « seize »
 │   ├── stopwords.js       Mots outils
 │   ├── analyzer.js        Texte → lignes → mots ; rimes, multis, régularité, grille 4/4
@@ -96,23 +97,31 @@ Trois zones (colonnes sur ordinateur, onglets **Textes · Écrire · Analyse** s
   teinté sur la syllabe.
 - **Textes** : liste des textes ; le crayon ✎ de la carte sélectionnée ouvre titre, BPM, gamme, export et
   suppression. Radar à Tics en dessous (top 10 des mots pleins sur tous les textes).
-- **Analyse** : réglages d'affichage (Rayon X, Assonances/Rimes, Grille 4/4, é ≠ è), signature vocalique de la
+- **Analyse** : réglages d'affichage (Rayon X, Assonances/Rimes/Consonnes, Grille 4/4, é ≠ è), signature vocalique de la
   ligne courante `[a - i - an - é]`, phonétique, mots répétés dans la section (16 mesures max, badge `TIC`
   s'ils sont dans ton top) et boîte à rimes (un clic insère le mot au curseur).
 - **Bas** : import d'instru par glisser-déposer ou bouton (via `URL.createObjectURL`, rien n'est envoyé),
   forme d'onde (clic ou glisser = se placer, Maj+glisser = boucle), A / B / ⟲, boucles 4m / 8m calées sur le
   BPM, `1↓` pour caler le temps 1, TAP tempo, métronome visuel + clic sonore.
 
-### Majuscules = syllabes mises en valeur
+### Consonances et allitérations
 
-Une majuscule est toujours un choix de l'auteur :
+Le mode **Consonnes** (Analyse → Affichage → Rayon X) colore, dans ton texte tel que tu l'écris, les sons
+consonnes qui reviennent plus souvent que le hasard : le **p** de « personne, perf, presque, père », le **s**
+de « sonne, sans, presque ». La couleur regroupe les sons voisins (p/b rose, t/d orange, k/g jaune, f/v vert
+d'eau, s/z bleu, ch/j violet, m/n bleu foncé, l vert, r rouge) ; l'inspecteur résume la ligne courante
+(`p ×2 · s ×1`).
 
-- au milieu d'un mot, elle le coupe : `PerSonne` = `Per` + `Sonne`, `PresqueSans` = `Presque` + `Sans` ;
-- toute syllabe qui contient une majuscule est « mise en valeur » : elle est comparée à toutes les autres
-  syllabes mises en valeur et aux rimes des lignes voisines (même voyelle), au lieu de la seule syllabe
-  tonique du mot. Elle est colorée dès qu'elle trouve un écho.
+Comment c'est décidé (`consonance.js`) :
+- on compte les **sons** prononcés, pas les lettres : « sans » = un seul `s`, « chante » = `ch` + `t` ;
+- fenêtres d'une et de deux lignes consécutives (dans la même section) ;
+- un son est retenu s'il apparaît **au moins 3 fois, dans au moins 3 mots différents**, et si c'est improbable
+  vu sa fréquence normale en français (queue de Poisson ≤ 20 %) : un `p` ou un `b` se remarque vite, un `r`
+  ou un `l` doit vraiment dominer ;
+- les petits mots (le, la, de, je, ne, que…) sont ignorés, sinon « le / la / les » créeraient de fausses
+  allitérations.
 
-Donc écris en minuscules ce qui ne doit pas compter, et en majuscules ce que tu veux faire sonner.
+Seuils réglables en tête de `consonance.js` (`MIN_COUNT`, `MAX_TAIL`, table `FREQ`).
 
 ### Raccourcis (ordinateur)
 

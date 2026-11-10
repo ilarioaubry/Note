@@ -66,11 +66,12 @@
         <div class="seg" id="segMode" role="group" aria-label="Densité du Rayon X">
           <button data-mode="assonances" aria-pressed="true" title="Toutes les voyelles toniques qui se répondent">Assonances</button>
           <button data-mode="rimes" aria-pressed="false" title="Voyelle tonique + consonnes finales identiques">Rimes</button>
+          <button data-mode="consonnes" aria-pressed="false" title="Sons consonnes qui reviennent souvent : allitérations, consonances">Consonnes</button>
         </div>
         <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
         <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
       </div>
-      <p class="muted small hint">Une majuscule dans un mot (« PerSonne ») met la syllabe en valeur : elle est comparée aux autres syllabes en majuscule et aux rimes proches.</p>
+      <p class="muted small hint">Rayon X colore les voyelles qui se répondent (Assonances, Rimes) ou, en mode Consonnes, les sons consonnes qui reviennent plus souvent que d'habitude : allitérations et consonances.</p>
     </div>
 
     <div class="panel">
@@ -82,6 +83,8 @@
       <div class="ins-label muted">Phonétique (API)</div>
       <div class="ipa" id="insIpa"></div>
       <div class="ins-row"><span class="muted">Rime finale</span><span id="insRhyme" class="mono"></span></div>
+      <div class="ins-label muted">Allitérations / consonances</div>
+      <div class="cons-chips" id="insCons"></div>
     </div>
 
     <div class="panel">

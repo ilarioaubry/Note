@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeWord, countSyllables, tokenize } from '../js/engine/phonetics.js';
+import { analyzeWord, countSyllables } from '../js/engine/phonetics.js';
 import { analyzeText } from '../js/engine/analyzer.js';
+import { consonantsOf } from '../js/engine/consonance.js';
 import { topTics } from '../js/engine/repetition.js';
 import { findRhymes } from '../js/engine/rhymeDictionary.js';
 
@@ -91,16 +92,25 @@ test('boîte à rimes', () => {
   assert.ok(r.rimes.includes('bruit') || r.riches.includes('bruit'));
 });
 
-test('majuscules volontaires : coupent le mot et mettent la syllabe en valeur', () => {
-  assert.deepEqual(tokenize('PerSonne PresqueSans').map((t) => t.text), ['Per', 'Sonne', 'Presque', 'Sans']);
-  assert.equal(countSyllables('PerSonne'), 2);
-  const r = analyzeText('PerSonne Perf\nPresqueSans Père', { mode: 'assonances' });
-  const sylOf = (li, txt) => r.lines[li].words.find((w) => w.text === txt).syls[0];
-  for (const [li, w] of [[0, 'Per'], [0, 'Perf'], [1, 'Presque'], [1, 'Père']]) {
-    assert.ok(sylOf(li, w).emph, `${w} est mis en valeur`);
-    assert.ok(sylOf(li, w).hl, `${w} rime avec les autres syllabes en majuscule`);
-  }
-  // sans majuscule, ces mots ne sont plus appariés de la même façon : l'emphase vient bien des majuscules
-  const plain = analyzeText('personne perf\npresquesans père', { mode: 'assonances' });
-  assert.ok(!plain.lines[0].words[0].syls[0].emph);
+test('consonances et allitérations (sans majuscule)', () => {
+  const r = analyzeText('personne perf\npresque sans père');
+  const flagged = (li) => new Set(r.lines[li].words.flatMap((w) => w.cons.filter((c) => c.hl).map((c) => c.ph)));
+  assert.ok(flagged(0).has('p') && flagged(1).has('p'), 'le p revient dans personne / perf / presque / père');
+  assert.ok(flagged(0).has('s') && flagged(1).has('s'), 'le s revient dans personne / presque / sans');
+  assert.deepEqual(r.lines[1].cons.map((c) => c.ph).sort(), ['p', 's']);
+  // un son qui n'est pas inhabituellement fréquent n'est pas marqué
+  assert.ok(!flagged(0).has('f') && !flagged(1).has('n'));
+});
+
+test('consonances : les petits mots (le, la, de…) ne créent pas de fausse allitération', () => {
+  const r = analyzeText('le la les de du des\nje me te se ne que');
+  assert.ok(r.lines.every((l) => l.cons.length === 0));
+});
+
+test('consonnes prononcées : lettres muettes ignorées', () => {
+  const ph = (w) => consonantsOf(w).map((c) => c.ph).join('');
+  assert.equal(ph('sans'), 's');
+  assert.equal(ph('grand'), 'gR');
+  assert.equal(ph('chante'), 'St');
+  assert.equal(ph('nuit'), 'n');
 });

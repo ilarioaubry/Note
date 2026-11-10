@@ -12,3 +12,14 @@ export const STOPWORDS = new Set(`
 `.trim().split(/\s+/));
 
 export const isStopword = (w) => STOPWORDS.has(w);
+
+/**
+ * Petits mots grammaticaux (articles, pronoms, « de », « ne », « que »…) : ils reviennent partout et
+ * fabriqueraient de fausses allitérations (le/la/les → « l »). Exclus de la détection de consonances.
+ */
+export const CLITICS = new Set(`
+  le la les l de du des d un une et ou je j me m moi te t tu toi il elle on nous vous ils elles se s soi lui
+  y en ce c ça ca cet cette ces ne n que qu qui à a au aux est es mon ma mes ton ta tes son sa ses
+`.trim().split(/\s+/));
+
+export const isClitic = (w) => CLITICS.has(w);

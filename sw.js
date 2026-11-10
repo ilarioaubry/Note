@@ -2,14 +2,14 @@
  * - code (html/js/css) : réseau d'abord (toujours à jour en ligne), cache en secours
  * - dictionnaire et icônes : cache d'abord (gros fichiers qui ne changent presque jamais)
  * Incrémenter VERSION force le renouvellement du cache (surtout si data/lexique.json change). */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = `flow-matrix-${VERSION}`;
 
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
   'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/main.js',
-  'js/engine/analyzer.js', 'js/engine/exceptions.js', 'js/engine/lexicon.js', 'js/engine/numbers.js',
+  'js/engine/analyzer.js', 'js/engine/consonance.js', 'js/engine/exceptions.js', 'js/engine/lexicon.js', 'js/engine/numbers.js',
   'js/engine/phonetics.js', 'js/engine/repetition.js', 'js/engine/rhymeDictionary.js', 'js/engine/rules.js',
   'js/engine/stopwords.js', 'js/engine/syllabify.js',
   'js/store/storage.js', 'js/ui/editor.js', 'js/ui/inspector.js', 'js/ui/player.js', 'js/ui/sidebar.js',

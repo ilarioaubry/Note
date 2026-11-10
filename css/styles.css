@@ -45,6 +45,10 @@
   --v-wa: hsl(342 85% 66%);
   --v-schwa: hsl(0 0% 60%);
 
+  /* Consonnes (mode Consonnes) : une couleur par famille de sons */
+  --c-p: hsl(332 90% 66%); --c-t: hsl(28 95% 58%); --c-k: hsl(50 90% 55%); --c-f: hsl(168 70% 48%);
+  --c-s: hsl(196 90% 58%); --c-sh: hsl(262 80% 72%); --c-m: hsl(222 85% 68%); --c-l: hsl(120 55% 52%); --c-r: hsl(2 85% 62%); --c-w: hsl(300 60% 65%);
+
   --m-0: #ffffff; --m-1: #39d0ff; --m-2: #ff5cf0; --m-3: #b6ff3b; --m-4: #ffd83b; --m-5: #ff7a59;
 
   color-scheme: dark;
@@ -403,3 +407,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .edit-panel .field input, .edit-panel .field select { width: 100%; font-family: var(--font-ui); font-size: 14px; padding: 7px 8px; background: var(--bg-2); }
 .edit-panel .field input[type="number"] { width: 84px; }
 .edit-panel .btn { flex: 1; }
+
+/* ---------- Consonnes : lettres sur fond teinté ---------- */
+.c { border-radius: 4px; background: color-mix(in srgb, var(--cc) 38%, transparent); }
+[data-c="p"] { --cc: var(--c-p); } [data-c="t"] { --cc: var(--c-t); } [data-c="k"] { --cc: var(--c-k); }
+[data-c="f"] { --cc: var(--c-f); } [data-c="s"] { --cc: var(--c-s); } [data-c="sh"] { --cc: var(--c-sh); }
+[data-c="m"] { --cc: var(--c-m); } [data-c="l"] { --cc: var(--c-l); } [data-c="r"] { --cc: var(--c-r); } [data-c="w"] { --cc: var(--c-w); }
+.cons-chips { display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; align-items: center; }
+.cchip {
+  padding: 1px 8px; border-radius: 6px; font-size: 13px; color: var(--cc);
+  background: color-mix(in srgb, var(--cc) 20%, transparent); border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
+}
+.cchip b { font-weight: 600; opacity: .8; font-size: 11px; }
