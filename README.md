@@ -26,6 +26,7 @@ js/
 │   ├── rules.js           Table de règles G2P (regex ordonnées) — à enrichir
 │   ├── exceptions.js      Listes d'exceptions (-ent prononcé, -er en [ɛʁ], -t final…)
 │   ├── lexicon.js         Dictionnaire (argot, anglicismes) + loadLexique() pour Lexique3
+│   ├── syllabify.js       Découpe le mot écrit en syllabes (surlignage par syllabe)
 │   ├── numbers.js         16 → « seize »
 │   ├── stopwords.js       Mots outils
 │   ├── analyzer.js        Texte → lignes → mots ; rimes, multis, régularité, grille 4/4
@@ -39,7 +40,9 @@ js/
 ├── store/storage.js       localStorage (projets, réglages)
 └── utils/dom.js           debounce, rafThrottle, escape…
 tests/phonetics.test.js    Tests node:test
-data/lexique.example.json  Exemple de format de dictionnaire externe
+data/lexique.json          Lexique 3 converti ({mot: phonétique}, trié par fréquence)
+tools/build_lexique.py     Régénère data/lexique.json depuis Lexique383.txt
+sw.js                      Service worker : fonctionnement hors ligne
 ```
 
 ## Le moteur phonétique
@@ -67,6 +70,8 @@ tel quel. L'inspecteur affiche la conversion en API (`/ʒsɥi/`).
 - *Rime de fin* : dernier mot qui rime avec un autre dernier mot (encadré).
 - *Multis* : séquences de 2 à 4 voyelles qui se répètent et finissent sur la tonique d'un mot plein
   (soulignement en vague, une couleur par groupe).
+- **Surlignage par syllabe** : le mot est découpé en syllabes écrites (`syllabify.js`) et seule la syllabe
+  concernée est colorée (`écris` → seul `cris` ; rime riche = les deux dernières syllabes).
 - é et è sont fusionnés par défaut (toggle `é ≠ è` pour le mode strict).
 
 ### Enrichir le moteur
@@ -76,7 +81,7 @@ tel quel. L'inspecteur affiche la conversion en API (`/ʒsɥi/`).
 | un mot mal transcrit                | ajouter une entrée dans `lexicon.js` (`'mot': 'phon'`)      |
 | une famille de mots                 | `exceptions.js` (ex. `NASAL_ENT`, `KEEP_FINAL_T`)           |
 | une règle générale                  | `rules.js` : l'ordre compte, la première règle qui matche gagne |
-| un gros dictionnaire                | déposer `data/lexique.json` (`[{ortho, phon}]` ou `{mot: phon}`) : il est chargé au démarrage |
+| le dictionnaire                     | `data/lexique.json` (Lexique 3, chargé au démarrage ; tes entrées de `lexicon.js` restent prioritaires). Voir `tools/build_lexique.py` |
 
 Ajoute un test dans `tests/phonetics.test.js` à chaque correction pour ne pas régresser.
 
@@ -111,13 +116,24 @@ On peut aussi glisser un `.txt` sur la fenêtre pour l'importer comme nouveau te
 
 L'interface est pensée mobile d'abord (≤ 900 px de large) : un écran à la fois, avec une barre
 d'onglets en bas **Textes · Écrire · Analyse**. Le bouton ⚙ ouvre les réglages avancés (répétitions,
-flow parlé, é ≠ è, export, suppression) ; le bouton ⋯ du lecteur ouvre A/B, 8 mesures, tap tempo et
+é ≠ è, export, suppression) ; le bouton ⋯ du lecteur ouvre A/B, 8 mesures, tap tempo et
 métronome. Quand le clavier s'ouvre, le lecteur et les onglets se masquent pour laisser la place au texte.
 Un `manifest.webmanifest` permet d'« Ajouter à l'écran d'accueil » (plein écran, icône dédiée).
 
+## Hors ligne
+
+Un service worker (`sw.js`) met l'app et le dictionnaire en cache à la première visite en ligne :
+ensuite tout fonctionne sans réseau (le code se met à jour tout seul dès que tu es en ligne).
+Après une modification de `data/lexique.json`, incrémenter `VERSION` dans `sw.js`.
+
+## Crédits
+
+Dictionnaire phonétique : **Lexique 3** — New, B., Pallier, C., Brysbaert, M., Ferrand, L. (2004),
+[www.lexique.org](https://www.lexique.org), licence CC BY-SA 4.0. `data/lexique.json` en est une version
+dérivée (mêmes conditions de partage).
+
 ## Limites connues (V1)
 
-- G2P à règles : quelques erreurs restent sur les homographes (`les poules couvent` / `le couvent`,
-  `fils`, `plus`). Le dictionnaire externe corrige l'essentiel.
+- Les homographes (`les poules couvent` / `le couvent`, `fils`, `plus`) prennent la prononciation la plus
+  fréquente de Lexique 3 ; le contexte n'est pas analysé.
 - La grille 4/4 répartit les syllabes en 4 temps égaux : c'est un repère visuel, pas un calage réel du flow.
-- Le surlignage se fait au niveau du mot (pas de la syllabe).

@@ -73,5 +73,5 @@ export function createInspector(els, { onInsert }) {
   /** Réactive le remplissage automatique de la boîte à rimes. */
   function resetRhymeInput() { userTyped = false; }
 
-  return { update, resetRhymeInput };
+  return { update, resetRhymeInput, refreshRhymes: () => searchRhymes() };
 }

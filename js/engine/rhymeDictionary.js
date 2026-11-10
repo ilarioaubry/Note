@@ -58,9 +58,17 @@ export function registerWords(words) {
   for (const w of words) if (!w.includes("'")) add(w);
 }
 
-/** Ré-indexe tous les mots connus du dictionnaire (après loadLexique). */
-export function rebuildFromLexicon() {
-  knownWords().forEach(add);
+/**
+ * Ré-indexe les mots les plus fréquents du dictionnaire chargé (Lexique3 est trié par fréquence).
+ * Fait par paquets pour ne pas figer l'interface sur téléphone.
+ * @returns {Promise<number>} taille de l'index
+ */
+export async function rebuildFromLexicon(limit = 30000) {
+  const words = knownWords().slice(0, limit);
+  for (let i = 0; i < words.length; i += 1500) {
+    for (const w of words.slice(i, i + 1500)) if (/^\p{L}+$/u.test(w)) add(w);
+    await new Promise((r) => setTimeout(r, 0));
+  }
   return index.size;
 }
 
@@ -92,6 +100,6 @@ export function findRhymes(word, { limit = 24, strict = false } = {}) {
     else if (sameKey) res.rimes.push(w);
     else if (matchClass(a.tonic, strict) === matchClass(target.tonic, strict)) res.assonances.push(w);
   }
-  for (const k of ['riches', 'rimes', 'assonances']) res[k] = res[k].sort((a, b) => a.length - b.length).slice(0, limit);
+  for (const k of ['riches', 'rimes', 'assonances']) res[k] = res[k].slice(0, limit);   // ordre d'insertion = fréquence
   return res;
 }

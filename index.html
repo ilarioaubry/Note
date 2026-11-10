@@ -32,7 +32,6 @@
     <button class="btn btn-menu" id="btnMenu" aria-expanded="false" aria-label="Réglages">⚙</button>
     <div class="toolbar toolbar-more" id="toolbarMore">
       <button class="tgl" id="tglReps" aria-pressed="true" title="Souligner les mots répétés dans la même section">Répétitions</button>
-      <button class="tgl" id="tglElision" aria-pressed="true" title="« maint'nant », « sam'di » : ne pas compter les e caducs internes">Flow parlé</button>
       <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
       <span class="sep"></span>
       <button class="btn" id="btnExport" title="Exporter en .txt">Exporter</button>
@@ -71,7 +70,7 @@
       <div class="ed-gutter" aria-hidden="true"><div class="ed-gutter-inner"></div></div>
       <div class="ed-main">
         <div class="ed-backdrop" aria-hidden="true"><div class="ed-backdrop-inner"></div></div>
-        <textarea class="ed-input" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"
+        <textarea class="ed-input" wrap="soft" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"
                   aria-label="Texte" placeholder="[Couplet 1]&#10;Écris ta première mesure…"></textarea>
       </div>
       <div class="ed-badges" aria-hidden="true"><div class="ed-badges-inner"></div></div>
@@ -103,6 +102,7 @@
       <input class="input" id="rhymeInput" type="search" placeholder="Mot à faire rimer…" spellcheck="false">
       <div class="rhyme-results" id="rhymeResults"></div>
       <p class="muted small" id="lexStatus"></p>
+      <p class="muted small"><span id="offlineTag" hidden>✓ Disponible hors ligne · </span>Dictionnaire : <a href="https://www.lexique.org" target="_blank" rel="noopener">Lexique 3</a> (CC BY-SA 4.0)</p>
     </div>
   </aside>
 

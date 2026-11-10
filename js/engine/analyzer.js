@@ -6,6 +6,7 @@
  */
 import { analyzeWord, tokenize, normalize, matchClass, DEFAULT_OPTS } from './phonetics.js';
 import { isStopword } from './stopwords.js';
+import { syllabify } from './syllabify.js';
 
 export const WINDOW = 3;          // fenêtre glissante : ligne courante + 3 voisines = 4 lignes
 const MULTI_MAX = 4;
@@ -34,7 +35,9 @@ function analyzeLine(text, index, opts) {
         lemma,
         isStop: isStopword(lemma) || lemma.length < 2,
         sylStart: syl,
-        hl: null, rich: false, endRhyme: false, multi: null, rep: false,
+        // une entrée par syllabe prononcée : { start, end (dans le mot), cls, hl, rich, endRhyme, multi }
+        syls: syllabify(tok.text, opts).map((x) => ({ ...x, hl: null, rich: false, endRhyme: false, multi: null })),
+        rep: false,
       });
       syl += a.syllables;
     }
@@ -76,6 +79,22 @@ function rhymeId(w, o) {
   return o.mode === 'rimes' ? w.rhymeKey : matchClass(w.tonic, o.strict);
 }
 
+const tail2 = (w, strict) => w.vowels.slice(-2).map((c) => matchClass(c, strict)).join('-');
+const sameTail = (w, v, strict) => w.vowels.length > 1 && v.vowels.length > 1 && tail2(w, strict) === tail2(v, strict);
+
+/** Colore la syllabe tonique du mot (et la précédente si la rime est riche). */
+function markTonic(w, rich, strict) {
+  const n = w.syls.length;
+  if (!n) return;
+  const last = w.syls[n - 1];
+  last.hl = matchClass(last.cls, strict);
+  last.rich = rich;
+  if (rich && n > 1 && w.syls[n - 2].cls !== 'schwa') {
+    w.syls[n - 2].hl = matchClass(w.syls[n - 2].cls, strict);
+    w.syls[n - 2].rich = true;
+  }
+}
+
 function detectRhymes(seq, o) {
   // Candidats : mots pleins + dernier mot de chaque ligne
   const cands = seq.map(({ line }) => line.words.filter((w, i) => !w.isStop || i === line.words.length - 1));
@@ -91,10 +110,10 @@ function detectRhymes(seq, o) {
           if (v === w || rhymeId(v, o) !== id) continue;
           if (v.lemma === w.lemma) continue;                      // même mot = répétition, pas rime
           hit = true;
-          if (w.rhymeKey === v.rhymeKey && (w.coda || w.vowels.length > 1)) rich = true;
+          if (w.rhymeKey === v.rhymeKey && sameTail(w, v, o.strict)) rich = true;   // rime riche : 2 dernières voyelles
         }
       }
-      if (hit) { w.hl = matchClass(w.tonic, o.strict); w.rich = rich; }
+      if (hit) markTonic(w, rich, o.strict);
     }
   }
 
@@ -105,7 +124,7 @@ function detectRhymes(seq, o) {
     if (!id) continue;
     for (let b = Math.max(0, a - WINDOW); b <= Math.min(seq.length - 1, a + WINDOW); b++) {
       if (b === a || seq[b].group !== seq[a].group) continue;
-      if (rhymeId(seq[b].line.words.at(-1), o) === id) { wa.endRhyme = true; break; }
+      if (rhymeId(seq[b].line.words.at(-1), o) === id) { const t = wa.syls.at(-1); if (t) t.endRhyme = true; break; }
     }
   }
 }
@@ -115,7 +134,7 @@ function detectRhymes(seq, o) {
 function detectMultis(seq, o) {
   // Syllabes de chaque ligne : { cls, word }
   const syls = seq.map(({ line }) => line.words.flatMap((w) =>
-    w.vowels.map((c, k) => ({ cls: matchClass(c, o.strict), word: w, last: k === w.vowels.length - 1 }))));
+    w.vowels.map((c, k) => ({ cls: matchClass(c, o.strict), word: w, syl: w.syls[k], last: k === w.vowels.length - 1 }))));
   const claimed = syls.map((s) => new Array(s.length).fill(false));
   let groupId = 0;
 
@@ -153,8 +172,8 @@ function detectMultis(seq, o) {
       for (const x of free) {
         for (let k = x.start; k <= x.end; k++) {
           claimed[x.li][k] = true;
-          const w = syls[x.li][k].word;
-          if (w.multi === null) w.multi = gid;
+          const sy = syls[x.li][k].syl;
+          if (sy && sy.multi === null) sy.multi = gid;
         }
       }
     }

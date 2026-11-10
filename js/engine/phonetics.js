@@ -12,7 +12,7 @@
  *   → résolution des e muets → élision optionnelle des e caducs internes
  */
 import { applyRules, MUTE_E, MUTE_ENT } from './rules.js';
-import { lookup } from './lexicon.js';
+import { lookup as lookupRaw } from './lexicon.js';
 import { KEEP_FINAL_S, KEEP_FINAL_X } from './exceptions.js';
 import { numberToWords } from './numbers.js';
 
@@ -44,13 +44,16 @@ export const DEFAULT_OPTS = {
 
 const cache = new Map();
 
+/** Recherche dans le dictionnaire (Lexique3 écrit « oe » là où on tape « œ »). */
+const lookup = (w) => lookupRaw(w) ?? (w.includes('œ') ? lookupRaw(w.replace(/œ/g, 'oe')) : undefined);
+
 /** Minuscules, apostrophes typographiques unifiées. */
 export function normalize(word) {
   return word.normalize('NFC').toLowerCase().replace(/[’`´ʼ]/g, "'").replace(/æ/g, 'ae');
 }
 
 /** Retire le -s / -x final muet (pluriels, 2e personne…). */
-function stripSilentFinal(w) {
+export function stripSilentFinal(w) {
   if (w.length >= 2 && w.endsWith('s') && !w.endsWith('ss') && !KEEP_FINAL_S.has(w)) w = w.slice(0, -1);
   if (w.length > 2 && /(?:ux|ix|aix|oix)$/.test(w) && !KEEP_FINAL_X.has(w)) w = w.slice(0, -1);
   return w;
@@ -69,7 +72,7 @@ function resolveMutes(phon) {
 }
 
 /** Loi des trois consonnes simplifiée : V C ə C → V C C (samedi → sam'di). */
-const ELISION_RE = new RegExp(`(?<=[${VOWEL_CHARS}][^${VOWEL_CHARS}jw8])°(?=[^${VOWEL_CHARS}jw8])`, 'gu');
+export const ELISION_RE = new RegExp(`(?<=[${VOWEL_CHARS}][^${VOWEL_CHARS}jw8])°(?=[^${VOWEL_CHARS}jw8])`, 'gu');
 function elideSchwas(phon) {
   return phon.replace(ELISION_RE, '');
 }
@@ -104,7 +107,7 @@ export function wordToPhon(token, opts = DEFAULT_OPTS) {
   } else {
     const whole = lookup(word);
     if (whole !== undefined) {
-      phon = whole;
+      phon = opts.elision ? elideSchwas(whole) : whole;
     } else {
       phon = word.split('-').map((part) => {
         const segs = part.split("'");

@@ -70,7 +70,7 @@ test('voyelles toniques (assonances)', () => {
 test('rimes de fin de ligne et multis', () => {
   const r = analyzeText("J'marche dans la nuit noire\nJ'cherche un peu d'espoir\nToujours la même histoire", { mode: 'rimes' });
   const ends = r.lines.map((l) => l.words.at(-1));
-  assert.ok(ends.every((w) => w.endRhyme), 'noire / espoir / histoire riment');
+  assert.ok(ends.every((w) => w.syls.at(-1).endRhyme), 'noire / espoir / histoire riment');
 });
 
 test('régularité syllabique', () => {

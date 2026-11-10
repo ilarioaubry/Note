@@ -17,6 +17,7 @@ export function createEditor(root, { onInput, onCaret }) {
   let current = -1;
   let lineEls = [];
   let gutterEls = [];
+  let badgeEls = [];
 
   const syncScroll = () => {
     backdrop.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`;
@@ -42,6 +43,24 @@ export function createEditor(root, { onInput, onCaret }) {
   for (const ev of ['keyup', 'click', 'focus', 'select']) ta.addEventListener(ev, updateCaret);
   document.addEventListener('selectionchange', () => { if (document.activeElement === ta) updateCaret(); });
 
+  /** Un mot = <span.w> contenant une <span.s> par syllabe (c'est la syllabe qui porte la couleur). */
+  function wordHTML(w, opts, beats) {
+    let html = '';
+    // Repères de grille : positionnés en absolu dans le mot, ils ne changent jamais les retours à la ligne
+    if (beats) beats.forEach((b, k) => { html += `<i class="beat${b % 2 === 0 ? ' snare' : ''}" data-b="${b}" data-k="${k}"></i>`; });
+    if (!w.syls.length) return html + escapeHTML(w.text);
+    for (const sy of w.syls) {
+      const attrs = [];
+      const cls = ['s'];
+      if (opts.xray && sy.hl) attrs.push(`data-v="${sy.hl}"`);
+      if (opts.xray && sy.multi !== null) attrs.push(`data-m="${sy.multi % 6}"`);
+      if (sy.rich) cls.push('rich');
+      if (sy.endRhyme) cls.push('end');
+      html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${escapeHTML(w.text.slice(sy.start, sy.end))}</span>`;
+    }
+    return html;
+  }
+
   function lineHTML(line, opts) {
     if (line.isMeta) return `<span class="meta-mark">${escapeHTML(line.text)}</span>`;
     if (!line.words.length) return escapeHTML(line.text) || '';
@@ -50,22 +69,25 @@ export function createEditor(root, { onInput, onCaret }) {
     let pos = 0;
     line.words.forEach((w, i) => {
       html += escapeHTML(line.text.slice(pos, w.start));
-      if (beats?.has(i)) {
-        for (const b of beats.get(i)) html += `<span class="beat${b % 2 === 0 ? ' snare' : ''}" data-b="${b}"></span>`;
-      }
-      const attrs = [];
-      const cls = ['w'];
-      if (opts.xray && w.hl) attrs.push(`data-v="${w.hl}"`);
-      if (opts.xray && w.multi !== null) attrs.push(`data-m="${w.multi % 6}"`);
-      if (w.rich) cls.push('rich');
-      if (w.endRhyme) cls.push('end');
-      if (w.rep) cls.push('rep');
-      html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${escapeHTML(w.text)}</span>`;
+      html += `<span class="w${w.rep ? ' rep' : ''}">${wordHTML(w, opts, beats?.get(i))}</span>`;
       pos = w.end;
     });
     html += escapeHTML(line.text.slice(pos));
     return html;
   }
+
+  /**
+   * Avec le retour à la ligne, une ligne de texte occupe plusieurs rangées :
+   * on recopie la hauteur réelle de chaque ligne du calque sur la gouttière et les badges.
+   */
+  function matchHeights() {
+    const hs = lineEls.map((el) => el.offsetHeight);          // une seule lecture de layout
+    hs.forEach((h, i) => {
+      if (gutterEls[i]) gutterEls[i].style.height = `${h}px`;
+      if (badgeEls[i]) badgeEls[i].style.height = `${h}px`;
+    });
+  }
+  new ResizeObserver(() => matchHeights()).observe(root.querySelector('.ed-main'));
 
   function render(analysis, opts) {
     const { lines } = analysis;
@@ -83,6 +105,8 @@ export function createEditor(root, { onInput, onCaret }) {
 
     lineEls = [...backdrop.children];
     gutterEls = [...gutter.children];
+    badgeEls = [...badges.children];
+    matchHeights();
     syncScroll();
   }
 

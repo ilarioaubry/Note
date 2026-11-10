@@ -180,7 +180,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .ed-gutter-inner div { text-align: right; padding-right: 8px; color: var(--text-faint); }
 .ed-gutter-inner div.current { color: var(--text); }
-.ed-badges-inner div { display: flex; align-items: center; justify-content: center; }
+.ed-badges-inner div { display: block; text-align: center; }
 
 .badge {
   display: inline-block; min-width: 34px; text-align: center; padding: 0 4px; line-height: 18px; border-radius: 4px;
@@ -197,36 +197,37 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Typo strictement identique textarea / calque */
 .ed-input, .ed-backdrop-inner {
   font-family: var(--font-mono); font-size: var(--ed-font-size); line-height: var(--ed-line);
-  letter-spacing: 0; tab-size: 4; white-space: pre; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
+  letter-spacing: 0; tab-size: 4; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
 }
 .ed-input {
   position: absolute; inset: 0; width: 100%; height: 100%; resize: none; border: 0; outline: none; margin: 0;
   padding: var(--ed-pad) var(--ed-pad) 50vh; background: transparent; color: var(--text); caret-color: var(--accent);
-  overflow: auto;
+  overflow-x: hidden; overflow-y: auto; scrollbar-width: none;      /* pas de scrollbar : elle changerait la largeur et donc les retours à la ligne */
 }
+.ed-input::-webkit-scrollbar { display: none; }
 .ed-input::placeholder { color: var(--text-faint); }
 .ed-input::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-.ed-backdrop-inner .ln { height: var(--ed-line); color: transparent; position: relative; }
+.ed-backdrop-inner .ln { min-height: var(--ed-line); color: transparent; position: relative; }
 .ed-backdrop-inner .ln.current { background: color-mix(in srgb, #fff 3.5%, transparent); }
 .ed-backdrop-inner .ln.meta { }
 .meta-mark { color: transparent; background: color-mix(in srgb, var(--accent-2) 10%, transparent); border-radius: 3px; }
 
-/* Mots surlignés (Rayon X) */
-.w { border-radius: 3px; }
-.xray .w[data-v] {
-  background: color-mix(in srgb, var(--vc) 24%, transparent);
+/* Syllabes surlignées (Rayon X) : la couleur est portée par la syllabe, pas par le mot */
+.s { border-radius: 3px; }
+.xray .s[data-v] {
+  background: color-mix(in srgb, var(--vc) 26%, transparent);
   box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--vc) 85%, transparent);
 }
-.xray .w.rich { background: color-mix(in srgb, var(--vc) 38%, transparent); }
-.xray .w.end { box-shadow: inset 0 -3px 0 var(--vc), 0 0 0 1px color-mix(in srgb, var(--vc) 55%, transparent); }
-.xray .w[data-m] { text-decoration: underline wavy var(--mc); text-decoration-thickness: 1.5px; text-underline-offset: 7px; }
-.w[data-v="a"] { --vc: var(--v-a); } .w[data-v="an"] { --vc: var(--v-an); } .w[data-v="o"] { --vc: var(--v-o); }
-.w[data-v="i"] { --vc: var(--v-i); } .w[data-v="in"] { --vc: var(--v-in); } .w[data-v="y"] { --vc: var(--v-y); }
-.w[data-v="E"] { --vc: var(--v-E); } .w[data-v="e"] { --vc: var(--v-e); } .w[data-v="u"] { --vc: var(--v-u); }
-.w[data-v="on"] { --vc: var(--v-on); } .w[data-v="eu"] { --vc: var(--v-eu); } .w[data-v="wa"] { --vc: var(--v-wa); }
-.w[data-m="0"] { --mc: var(--m-0); } .w[data-m="1"] { --mc: var(--m-1); } .w[data-m="2"] { --mc: var(--m-2); }
-.w[data-m="3"] { --mc: var(--m-3); } .w[data-m="4"] { --mc: var(--m-4); } .w[data-m="5"] { --mc: var(--m-5); }
+.xray .s.rich { background: color-mix(in srgb, var(--vc) 40%, transparent); }
+.xray .s.end { box-shadow: inset 0 -3px 0 var(--vc), 0 0 0 1px color-mix(in srgb, var(--vc) 55%, transparent); }
+.xray .s[data-m] { text-decoration: underline wavy var(--mc); text-decoration-thickness: 1.5px; text-underline-offset: 7px; }
+.s[data-v="a"] { --vc: var(--v-a); } .s[data-v="an"] { --vc: var(--v-an); } .s[data-v="o"] { --vc: var(--v-o); }
+.s[data-v="i"] { --vc: var(--v-i); } .s[data-v="in"] { --vc: var(--v-in); } .s[data-v="y"] { --vc: var(--v-y); }
+.s[data-v="E"] { --vc: var(--v-E); } .s[data-v="e"] { --vc: var(--v-e); } .s[data-v="u"] { --vc: var(--v-u); }
+.s[data-v="on"] { --vc: var(--v-on); } .s[data-v="eu"] { --vc: var(--v-eu); } .s[data-v="wa"] { --vc: var(--v-wa); }
+.s[data-m="0"] { --mc: var(--m-0); } .s[data-m="1"] { --mc: var(--m-1); } .s[data-m="2"] { --mc: var(--m-2); }
+.s[data-m="3"] { --mc: var(--m-3); } .s[data-m="4"] { --mc: var(--m-4); } .s[data-m="5"] { --mc: var(--m-5); }
 
 /* Répétitions */
 .reps-on .w.rep::after {
@@ -234,14 +235,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .w { position: relative; }
 
-/* Grille 4/4 : repères à largeur nulle */
-.beat { position: relative; display: inline-block; width: 0; height: var(--ed-line); vertical-align: top; }
+/* Grille 4/4 : repères absolus dans le mot (aucun effet sur la mise en page du texte) */
+.beat { position: absolute; left: -3px; top: 0; bottom: 0; width: 0; pointer-events: none; }
+.beat[data-k="1"] { left: 6px; } .beat[data-k="2"] { left: 15px; } .beat[data-k="3"] { left: 24px; }
 .beat::before {
-  content: ""; position: absolute; left: -3px; top: 5px; bottom: 5px; width: 2px; border-radius: 1px;
+  content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 2px; border-radius: 1px;
   background: color-mix(in srgb, var(--text-dim) 55%, transparent);
 }
 .beat::after {
-  content: attr(data-b); position: absolute; left: -2px; top: -4px; font-size: 8px; line-height: 1;
+  content: attr(data-b); position: absolute; left: 1px; top: -3px; font-size: 8px; line-height: 1;
   color: var(--text-faint); font-family: var(--font-mono);
 }
 .beat.snare::before { background: var(--snare); width: 3px; box-shadow: 0 0 6px color-mix(in srgb, var(--snare) 60%, transparent); }
@@ -316,7 +318,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- Mobile : un écran à la fois ---------- */
 @media (max-width: 900px) {
-  :root { --ed-font-size: 13px; --ed-line: 26px; --ed-pad: 10px; }
+  :root { --ed-font-size: 14px; --ed-line: 27px; --ed-pad: 10px; }
   html, body { position: fixed; inset: 0; width: 100%; overflow: hidden; overscroll-behavior: none; }
   body { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 

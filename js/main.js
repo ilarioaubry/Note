@@ -8,6 +8,7 @@
 import { $, $$, debounce, rafThrottle } from './utils/dom.js';
 import { analyzeText } from './engine/analyzer.js';
 import { CLASS_LABEL, clearCache } from './engine/phonetics.js';
+import { clearSyllableCache } from './engine/syllabify.js';
 import { markRepetitions, repeatsInRange, topTics } from './engine/repetition.js';
 import { registerWords, rebuildFromLexicon } from './engine/rhymeDictionary.js';
 import { loadLexique } from './engine/lexicon.js';
@@ -49,7 +50,7 @@ const keyLabel = (k) => {
 const state = {
   projects: store.loadProjects(),
   currentId: store.loadCurrentId(),
-  settings: store.loadSettings(),
+  settings: { ...store.loadSettings(), elision: true },   // le flow parlé (élision des e caducs) est toujours actif
   analysis: null,
   sections: [],
   tics: [],
@@ -210,7 +211,7 @@ $('#btnExport').addEventListener('click', () => {
 });
 
 /* ====================== Réglages / toggles ====================== */
-const TOGGLES = { tglXray: 'xray', tglGrid: 'grid', tglReps: 'reps', tglElision: 'elision', tglStrict: 'strict' };
+const TOGGLES = { tglXray: 'xray', tglGrid: 'grid', tglReps: 'reps', tglStrict: 'strict' };
 
 function syncToggles() {
   for (const [id, key] of Object.entries(TOGGLES)) $(`#${id}`).setAttribute('aria-pressed', String(!!state.settings[key]));
@@ -220,7 +221,7 @@ function syncToggles() {
 function setSetting(key, value) {
   state.settings[key] = value;
   store.saveSettings(state.settings);
-  if (key === 'elision' || key === 'strict') clearCache();
+  if (key === 'elision' || key === 'strict') resetCaches();
   syncToggles();
   analyze();
 }
@@ -309,15 +310,27 @@ vv?.addEventListener('scroll', fitViewport);
 window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
 fitViewport();
 
+const resetCaches = () => { clearCache(); clearSyllableCache(); };
+
 /* ====================== Dictionnaire externe (optionnel) ====================== */
-// Dépose un fichier data/lexique.json (format Lexique3 : [{ortho, phon}] ou {mot: phon}) pour l'activer.
+// Lexique 3 (CC BY-SA 4.0, New & Pallier) converti en { mot: phonétique }, trié par fréquence.
+const lexStatus = $('#lexStatus');
 loadLexique('data/lexique.json')
-  .then((n) => {
-    clearCache();
-    $('#lexStatus').textContent = `Lexique externe : ${n} entrées · index rimes : ${rebuildFromLexicon()} mots`;
+  .then(async (n) => {
+    resetCaches();
+    lexStatus.textContent = `Lexique 3 : ${n.toLocaleString('fr-FR')} mots · indexation des rimes…`;
     analyze();
+    const size = await rebuildFromLexicon();
+    lexStatus.textContent = `Lexique 3 : ${n.toLocaleString('fr-FR')} mots · ${size.toLocaleString('fr-FR')} indexés pour les rimes.`;
+    inspector.refreshRhymes?.();
   })
-  .catch(() => { $('#lexStatus').textContent = 'Index : liste de base + tes textes. (Ajoute data/lexique.json pour l\'enrichir.)'; });
+  .catch(() => { lexStatus.textContent = "Dictionnaire indisponible : liste de base + tes textes."; });
+
+/* ====================== Hors ligne ====================== */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.ready.then(() => { $('#offlineTag').hidden = false; }).catch(() => {});
+}
 
 /* ====================== Démarrage ====================== */
 syncToggles();

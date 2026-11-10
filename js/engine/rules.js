@@ -159,11 +159,17 @@ export const RULES = RAW_RULES.map(([pattern, out]) => ({
 }));
 
 /**
- * Applique la table de règles à un mot (déjà normalisé, sans apostrophe ni tiret).
- * @returns {string} transcription en notation Lexique (avec marqueurs ~ et ^)
+ * Applique la table de règles à un mot (déjà normalisé, sans apostrophe ni tiret) en gardant
+ * l'alignement lettres ↔ phonèmes (sert à découper le mot en syllabes à l'écran).
+ * @returns {{phon:string, src:number[], spans:{s:number,e:number}[]}}
+ *   phon  : transcription en notation Lexique (avec marqueurs ~ et ^)
+ *   src   : pour chaque caractère de phon, l'index du bloc de lettres qui l'a produit
+ *   spans : blocs de lettres consommés par chaque règle ({s,e} en indices de lettres)
  */
-export function applyRules(word) {
-  let out = '';
+export function applyRulesAligned(word) {
+  let phon = '';
+  const src = [];
+  const spans = [];
   let i = 0;
   while (i < word.length) {
     let matched = false;
@@ -171,12 +177,21 @@ export function applyRules(word) {
       rule.re.lastIndex = i;
       const m = rule.re.exec(word);
       if (!m || m[0].length === 0) continue;
-      out += typeof rule.out === 'function' ? rule.out(word, m) : rule.out;
+      const o = typeof rule.out === 'function' ? rule.out(word, m) : rule.out;
+      const t = spans.length;
+      spans.push({ s: i, e: i + m[0].length });
+      for (let k = 0; k < o.length; k++) src.push(t);
+      phon += o;
       i += m[0].length;
       matched = true;
       break;
     }
     if (!matched) i += 1; // caractère inconnu (chiffre, symbole) : ignoré
   }
-  return out;
+  return { phon, src, spans };
+}
+
+/** Transcription seule (notation Lexique, avec marqueurs ~ et ^). */
+export function applyRules(word) {
+  return applyRulesAligned(word).phon;
 }
