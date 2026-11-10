@@ -114,3 +114,17 @@ test('consonnes prononcées : lettres muettes ignorées', () => {
   assert.equal(ph('chante'), 'St');
   assert.equal(ph('nuit'), 'n');
 });
+
+test('accents oubliés : règle de secours sans dictionnaire', () => {
+  assert.equal(analyzeWord("j'ecoute").vowels.join('-'), 'e-u');
+  assert.equal(analyzeWord('etoile').vowels[0], 'e');
+  assert.equal(analyzeWord('elle').vowels[0], 'E');      // « elle » reste è
+});
+
+test('répétitions : « ecoute » et « écoute » sont le même mot', async () => {
+  const { topTics } = await import('../js/engine/repetition.js');
+  const { addEntries } = await import('../js/engine/lexicon.js');
+  addEntries({ 'écoute': 'ekut' });
+  const top = topTics(["j'écoute la ville, j'ecoute le bruit"]);
+  assert.equal(top.find((t) => t.lemma === 'écoute')?.count, 2);
+});

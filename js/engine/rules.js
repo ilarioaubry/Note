@@ -104,6 +104,7 @@ const RAW_RULES = [
   ['é', 'e'], ['[èêë]', 'E'],
 
   // — Le « e » —
+  [`^e(?=[bcdfgjklmnpqrstvz][${V}])`, 'e'],                 // accent oublié : ecoute, etoile, ecrire → é
   ['e$', MUTE_E],                                           // monde, vie
   ['e(?=x)', 'E'],                                          // exister
   [`e(?=([${C}])\\1)`, 'E'],                                // belle, cette

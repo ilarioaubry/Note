@@ -12,7 +12,7 @@
  *   → résolution des e muets → élision optionnelle des e caducs internes
  */
 import { applyRules, MUTE_E, MUTE_ENT } from './rules.js';
-import { lookup as lookupRaw } from './lexicon.js';
+import { lookupLoose as lookupRaw } from './lexicon.js';
 import { KEEP_FINAL_S, KEEP_FINAL_X } from './exceptions.js';
 import { numberToWords } from './numbers.js';
 
@@ -44,7 +44,7 @@ export const DEFAULT_OPTS = {
 
 const cache = new Map();
 
-/** Recherche dans le dictionnaire (Lexique3 écrit « oe » là où on tape « œ »). */
+/** Recherche dans le dictionnaire, tolérante aux accents oubliés (ecoute → écoute) et à « œ » écrit « oe » dans Lexique3. */
 const lookup = (w) => lookupRaw(w) ?? (w.includes('œ') ? lookupRaw(w.replace(/œ/g, 'oe')) : undefined);
 
 /** Minuscules, apostrophes typographiques unifiées. */

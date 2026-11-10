@@ -2,7 +2,7 @@
  * - code (html/js/css) : réseau d'abord (toujours à jour en ligne), cache en secours
  * - dictionnaire et icônes : cache d'abord (gros fichiers qui ne changent presque jamais)
  * Incrémenter VERSION force le renouvellement du cache (surtout si data/lexique.json change). */
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = `flow-matrix-${VERSION}`;
 
 const CORE = [

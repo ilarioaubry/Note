@@ -55,14 +55,45 @@ const BUILTIN = {
 let dictionary = new Map(Object.entries(BUILTIN));
 let externalLoaded = false;
 
+/** Retire les accents (é → e, ç → c, œ reste œ) : « ecoute » → clé de « écoute ». */
+export const stripAccents = (w) => w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC');
+
+/**
+ * Index « sans accents » → forme accentuée la plus fréquente (le dictionnaire est trié par fréquence,
+ * la première forme rencontrée gagne). Sert quand on tape vite sans accents : j'ecoute, deja, tete, ca.
+ */
+const unaccented = new Map();
+function indexUnaccented(word) {
+  const key = stripAccents(word);
+  if (key !== word && !unaccented.has(key)) unaccented.set(key, word);
+}
+for (const w of dictionary.keys()) indexUnaccented(w);
+
 /** Retourne la transcription d'un mot (notation Lexique) ou undefined. */
 export function lookup(word) {
   return dictionary.get(word);
 }
 
+/**
+ * Forme écrite « canonique » d'un mot : lui-même s'il est connu, sinon sa version accentuée
+ * (ecoute → écoute). undefined si le mot est inconnu dans les deux cas.
+ */
+export function canonicalForm(word) {
+  if (dictionary.has(word)) return word;
+  return unaccented.get(word);
+}
+
+/** Transcription en tolérant l'absence d'accents : lookup(word) puis la forme accentuée. */
+export function lookupLoose(word) {
+  const direct = dictionary.get(word);
+  if (direct !== undefined) return direct;
+  const accented = unaccented.get(word);
+  return accented !== undefined ? dictionary.get(accented) : undefined;
+}
+
 /** Ajoute / remplace des entrées (utile pour un dictionnaire personnel). */
 export function addEntries(entries) {
-  for (const [w, p] of Object.entries(entries)) dictionary.set(w.toLowerCase(), p);
+  for (const [w, p] of Object.entries(entries)) { dictionary.set(w.toLowerCase(), p); indexUnaccented(w.toLowerCase()); }
 }
 
 /**
@@ -81,11 +112,11 @@ export async function loadLexique(source) {
   const builtin = new Map(dictionary); // les exceptions maison restent prioritaires
   if (Array.isArray(data)) {
     for (const e of data) {
-      if (e && e.ortho && e.phon && !builtin.has(e.ortho)) { dictionary.set(e.ortho.toLowerCase(), e.phon); count++; }
+      if (e && e.ortho && e.phon && !builtin.has(e.ortho)) { dictionary.set(e.ortho.toLowerCase(), e.phon); indexUnaccented(e.ortho.toLowerCase()); count++; }
     }
   } else if (data && typeof data === 'object') {
     for (const [w, p] of Object.entries(data)) {
-      if (!builtin.has(w)) { dictionary.set(w.toLowerCase(), p); count++; }
+      if (!builtin.has(w)) { dictionary.set(w.toLowerCase(), p); indexUnaccented(w.toLowerCase()); count++; }
     }
   }
   externalLoaded = count > 0;

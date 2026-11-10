@@ -42,3 +42,14 @@ test('Lexique 3 : mots courants et flow parlé', () => {
   assert.equal(countSyllables('monde'), 1);
   assert.equal(countSyllables("J'écris la nuit quand la ville s'endort"), 9);
 });
+
+test('accents oubliés : compris comme le mot accentué (Lexique 3 chargé)', () => {
+  const v = (w) => analyzeWord(w).vowels.join('-');
+  assert.equal(v("j'ecoute"), v("j'écoute"));
+  assert.equal(v('deja'), v('déjà'));
+  assert.equal(v('tete'), v('tête'));
+  assert.equal(v('reve'), v('rêve'));
+  assert.equal(v('ca'), v('ça'));
+  assert.equal(countSyllables('ecrire'), 2);
+  assert.equal(countSyllables('evidemment'), countSyllables('évidemment'));
+});

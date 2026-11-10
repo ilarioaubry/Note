@@ -8,6 +8,7 @@ import { analyzeWord, tokenize, normalize, matchClass, DEFAULT_OPTS } from './ph
 import { isStopword, isClitic } from './stopwords.js';
 import { syllabify } from './syllabify.js';
 import { consonantsOf, detectConsonance } from './consonance.js';
+import { canonicalForm } from './lexicon.js';
 
 export const WINDOW = 3;          // fenêtre glissante : ligne courante + 3 voisines = 4 lignes
 const MULTI_MAX = 4;
@@ -18,7 +19,8 @@ const META_RE = /^\s*[\[#]/;      // [Couplet 1], # Refrain…
 /** Mot « lemme » pour les répétitions : dernier segment après apostrophe, sans pluriel. */
 export function lemmaOf(token) {
   let w = normalize(token).split("'").filter(Boolean).pop() ?? '';
-  if (w.length > 3 && /[sx]$/.test(w) && !w.endsWith('ss')) w = w.slice(0, -1);
+  w = canonicalForm(w) ?? w;                                         // ecoute → écoute
+  if (w.length > 3 && /[sx]$/.test(w) && !w.endsWith('ss')) w = canonicalForm(w.slice(0, -1)) ?? w.slice(0, -1);
   return w;
 }
 
