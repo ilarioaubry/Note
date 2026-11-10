@@ -169,6 +169,17 @@ export function createEditor(root, { onInput, onCaret }) {
     insertAtCursor(`\n${str}`);
   }
 
+  /** Ajoute des mots à la fin de la ligne du curseur (avec une espace si besoin). */
+  function appendToLine(str) {
+    const start = lineStart(caretLine());
+    const nl = ta.value.indexOf('\n', start);
+    const end = nl < 0 ? ta.value.length : nl;
+    const needsSpace = end > start && !/\s$/.test(ta.value.slice(start, end));
+    ta.focus();
+    ta.setSelectionRange(end, end);
+    insertAtCursor(`${needsSpace ? ' ' : ''}${str}`);
+  }
+
   /** Place le curseur au début d'une ligne et la fait défiler à l'écran, sans ouvrir le clavier. */
   function gotoLine(n) {
     const pos = lineStart(n);
@@ -193,6 +204,7 @@ export function createEditor(root, { onInput, onCaret }) {
     render,
     insertAtCursor,
     insertLineBelow,
+    appendToLine,
     gotoLine,
     scroller,
     currentLine: () => (current < 0 ? 0 : current),

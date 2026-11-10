@@ -97,8 +97,8 @@ test('projet : idées dites dans les sons validés, thèmes en attente', async (
   assert.equal(usage.get('i2').length, 0);
   const r = albumReport(texts, ideas, usage);
   assert.equal(r.validated, 1);
-  assert.ok(r.covered.some((t) => t.id === 'argent'));
-  assert.ok(r.waiting.some((t) => t.id === 'foi'), 'la foi est dans les idées mais pas encore dans un son validé');
+  assert.ok(r.covered.some((t) => t.label === 'Argent'));
+  assert.ok(r.waiting.some((t) => t.label === 'Foi / spiritualité'), 'la foi est dans les idées mais pas encore dans un son validé');
   assert.equal(r.free, 1);
 });
 

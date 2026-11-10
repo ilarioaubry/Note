@@ -37,11 +37,20 @@ js/
 │   ├── analyzer.js        Texte → lignes → mots ; rimes, multis, régularité, grille 4/4
 │   ├── repetition.js      Répétitions par section de 16 mesures + Radar à Tics
 │   └── rhymeDictionary.js Boîte à rimes (index phonétique) + synonymes (branchement prévu)
+├── ai/                    ← IA (Claude, API Anthropic), appelée depuis le navigateur avec ta clé
+│   ├── client.js          Clé, modèle, appel avec réponse JSON garantie par schéma, coût estimé
+│   ├── prompts.js         Rôle, contexte (banque d'idées, profil), schémas, normalisation — pur, testé
+│   └── features.js        Analyse, Souffle-moi, profil, classement des idées, synthèse de projet
+├── app/assistant.js       Orchestre l'IA : quand analyser, ce qu'on garde, vérification locale
 ├── ui/
 │   ├── editor.js          Textarea + calque synchronisé (surlignage, badges, grille)
 │   ├── sidebar.js         Projets + Radar à Tics
 │   ├── inspector.js       Signature vocalique, répétitions locales, boîte à rimes
-│   ├── understanding.js   Analyse : prononciation perso, « ça sonne avec », « Ce texte »
+│   ├── analysis.js        Analyse → Texte : lecture par l'IA + graphique de rythme
+│   ├── aisettings.js      Réglages de l'IA (clé, modèle, analyse automatique, dépense)
+│   ├── suggest.js         Feuille « Souffle-moi »
+│   ├── tabs.js            Sous-onglets
+│   ├── understanding.js   Prononciation perso, « ça sonne avec », repérage local (sans IA)
 │   ├── ideas.js           Onglet Idées (banque d'idées)
 │   ├── overview.js        Panneau Projet + « Ton vocabulaire »
 │   └── player.js          Audio local, forme d'onde, A/B, 4/8 mesures, tap tempo, métronome
@@ -51,6 +60,7 @@ tests/phonetics.test.js    Tests node:test
 data/lexique.json          Lexique 3 converti ({mot: phonétique}, trié par fréquence)
 tools/build_lexique.py     Régénère data/lexique.json depuis Lexique383.txt
 sw.js                      Service worker : fonctionnement hors ligne
+vendor/anthropic-sdk.js    SDK officiel @anthropic-ai/sdk 1.8.0, empaqueté (voir vendor/README.md)
 ```
 
 ## Le moteur phonétique
@@ -96,7 +106,8 @@ Ajoute un test dans `tests/phonetics.test.js` à chaque correction pour ne pas r
 ## Interface
 
 Quatre zones (colonnes sur ordinateur, onglets **Textes · Écrire · Analyse · Idées** sur téléphone ;
-sur ordinateur, le bouton « Idées ✦ » bascule la colonne de gauche) :
+sur ordinateur, le bouton « Idées ✦ » bascule la colonne de gauche). Chaque zone a des sous-onglets pour
+ne montrer qu'un sujet à la fois : Textes → Textes · Projet · Profil ; Analyse → Texte · Ligne · Réglages.
 
 - **Écrire** : le texte seul, plein écran. Retour à la ligne automatique, marge à gauche, badge de syllabes à
   droite de chaque ligne (vert = ±1 par rapport à la médiane des lignes précédentes du bloc, orange = ±2-3,
@@ -149,7 +160,41 @@ Un écran à la fois, barre d'onglets en bas. Le bouton ⋯ du lecteur ouvre A/B
 métronome. Quand le clavier s'ouvre, le lecteur et les onglets se masquent pour laisser la place au texte.
 Le `manifest.webmanifest` permet d'« Ajouter à l'écran d'accueil » (plein écran, icône dédiée).
 
-## Mémoire d'écriture et compréhension (100 % local, sans IA)
+## L'IA : le moteur de compréhension
+
+Le moteur local sait compter et faire rimer ; il ne comprend pas le sens. La compréhension est confiée
+à **Claude** (API Anthropic), appelé directement depuis le navigateur avec **ta clé API**, que tu colles
+dans **Analyse → Réglages** (elle reste sur l'appareil, dans `localStorage`).
+
+| Fonction | Où | Ce que fait l'IA |
+|---|---|---|
+| **Lecture du texte** | Analyse → Texte | Résumé en phrases, intention, humeur, thèmes, ce qui marche, ce qui est à reprendre (avec une piste), figures de style, fil du texte, idées de ta banque reconnues **même reformulées**, idées à placer |
+| **Souffle-moi** | bouton ✦ sur Écrire | Fins pour la ligne en cours et lignes pour la suite, dans ta voix et le propos du texte, nourries par ta banque d'idées |
+| **Profil d'écriture** | Textes → Profil | Portrait de ta voix (thèmes, mots, procédés, forces, angles morts), réinjecté dans toutes les demandes |
+| **Classement des idées** | Idées | Sens, thèmes et humeur de chaque idée importée |
+| **Synthèse de projet** | Textes → Projet | Ce que raconte le projet, redites, angles encore à écrire à partir de ta banque |
+
+Principes de conception :
+
+- **Hybride.** L'IA s'occupe du sens ; le moteur local garde ce qu'il fait mieux (syllabes, rimes,
+  allitérations, rythme). Les nombres de syllabes sont fournis à l'IA, et chaque proposition de
+  Souffle-moi est **revérifiée localement** (syllabes, rythme des lignes voisines, rime).
+- **On ne paie pas deux fois.** Une lecture est gardée par texte tant qu'il ne change pas ; un bandeau
+  signale quand le texte a bougé. La banque d'idées et le profil sont mis en cache côté API (1 h).
+- **Quand ça part.** L'analyse se lance à l'ouverture de l'onglet Analyse si le texte a changé (réglable),
+  au passage d'un texte en « Validé » (suivie d'une mise à jour du profil), à l'import d'idées, et sur
+  les boutons. Rien d'autre ne quitte l'appareil.
+- **Modèle.** Claude Opus 5.5 par défaut ; Sonnet 5.5 et Haiku 5.5 au choix dans les réglages. La
+  dépense estimée est affichée.
+- **Sans clé**, l'app reste utilisable : repérage local des thèmes et figures, rimes, rythme.
+
+Confidentialité : le texte, la banque d'idées et le profil sont envoyés à Anthropic au moment d'une
+demande. D'après la documentation de l'API, ces données ne servent pas à l'entraînement sans accord
+exprès ([détails](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention)).
+
+Tests : `tests/ai.test.js` couvre le contexte, les schémas et la normalisation, sans réseau.
+
+## Mémoire d'écriture et repérage local (sans IA)
 
 Rien n'est envoyé nulle part : tout est calculé sur le téléphone, hors ligne.
 

@@ -112,20 +112,20 @@ export function createUnderstanding(els, { onPronounce, onUnpronounce, onUseLine
       }</ul></details>`).join('')
       : '<span class="empty">Aucune figure repérée.</span>';
 
-    summary.innerHTML = `
+    summary.innerHTML = `<div class="card">
+      <div class="card-head"><h3>Repérage rapide</h3><span class="muted small">sans IA</span></div>
       <p class="brief">${brief}</p>
-      <div class="ins-label muted">Mots forts</div>
-      <div class="chips">${keywords.length ? keywords.map((k) => `<span class="tag">${escapeHTML(k)}</span>`).join('') : '<span class="empty">—</span>'}</div>
-      <div class="ins-label muted">Thèmes</div>
-      <div class="chips">${themes.length ? themes.map((t) => `<span class="tag theme" title="${escapeHTML(t.words.join(', '))}">${escapeHTML(t.label)} <b>${t.count}</b></span>`).join('') : '<span class="empty">—</span>'}</div>
-      <div class="ins-label muted">Humeur</div>
-      <div class="chips">${mood.length ? mood.slice(0, 4).map((m) => `<span class="tag">${escapeHTML(m.label)} <b>${Math.round(m.share * 100)} %</b></span>`).join('') : '<span class="empty">neutre / descriptif</span>'}</div>
-      <div class="ins-label muted">Figures de style</div>
+      <h4>Mots forts</h4>
+      <div class="pill-row">${keywords.length ? keywords.map((k) => `<span class="pill">${escapeHTML(k)}</span>`).join('') : '<span class="empty">—</span>'}</div>
+      <h4>Figures repérées</h4>
       <div class="figs">${figHTML}</div>
-      <div class="ins-label muted">Idées de ta banque présentes ici</div>
-      <div class="chips">${ideas.length ? ideas.map((i) => `<span class="tag ok" title="${escapeHTML(i.text)}">${escapeHTML(i.text.split('\n')[0].slice(0, 40))}${i.text.length > 40 ? '…' : ''}</span>`).join('') : '<span class="empty">Aucune</span>'}</div>
-      <p class="muted small hint">Analyse par règles et lexiques (sans IA) : elle repère ce qui est dit explicitement, pas le second degré.</p>`;
+      ${ideas.length ? `<h4>Idées de ta banque présentes ici</h4><div class="pill-row">${ideas.map((i) => `<span class="pill ok" title="${escapeHTML(i.text)}">${escapeHTML(i.text.split('\n')[0].slice(0, 40))}${i.text.length > 40 ? '…' : ''}</span>`).join('')}</div>` : ''}
+      <p class="hint">Par listes de mots et règles : repère ce qui est dit explicitement, pas le second degré.</p>
+    </div>`;
   }
 
-  return { renderWords, renderSounds, renderSummary, editWord };
+  /** Masque le repérage local quand la lecture par l'IA est affichée. */
+  function showSummary(visible) { summary.hidden = !visible; }
+
+  return { renderWords, renderSounds, renderSummary, showSummary, editWord };
 }

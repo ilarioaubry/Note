@@ -96,12 +96,9 @@ export function createSidebar({ list, tics, ticsScope, btnNew }, { onSelect, onN
     return `<span class="p-top"><span class="p-title">${escapeHTML(p.title || 'Sans titre')}</span>${
       active ? `<button class="p-edit${editing ? ' on' : ''}" data-edit type="button" aria-label="Modifier le titre, le BPM et la gamme" aria-expanded="${editing}">✎</button>` : ''}</span>
       <span class="p-meta">
-        ${p.bpm ? `<span class="tag bpm">${p.bpm} BPM</span>` : ''}
-        ${p.key ? `<span class="tag key">${escapeHTML(p.key)}</span>` : ''}
-        ${p.status === 'valide' ? '<span class="tag ok">✓ validé</span>' : ''}
-        ${p.album ? `<span class="tag album">${escapeHTML(p.album)}</span>` : ''}
-        <span class="tag">${lines} l.</span>
-        <span class="muted small">${date}</span>
+        ${p.status === 'valide' ? '<span class="pill ok">✓ Validé</span>' : '<span class="pill">Brouillon</span>'}
+        ${p.album ? `<span class="pill album">${escapeHTML(p.album)}</span>` : ''}
+        <span class="p-info">${lines} ligne${lines > 1 ? 's' : ''}${p.bpm ? ` · ${p.bpm} BPM` : ''}${p.key ? ` · ${escapeHTML(p.key)}` : ''} · ${date}</span>
       </span>`;
   };
 

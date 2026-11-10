@@ -27,6 +27,12 @@ import { createPlayer, isAudioFile } from './ui/player.js';
 import { createIdeasView } from './ui/ideas.js';
 import { createOverview, ALL_ALBUMS } from './ui/overview.js';
 import { createUnderstanding } from './ui/understanding.js';
+import { createSubtabs } from './ui/tabs.js';
+import { createAnalysisView } from './ui/analysis.js';
+import { createAISettings } from './ui/aisettings.js';
+import { createSuggestSheet } from './ui/suggest.js';
+import { createAssistant } from './app/assistant.js';
+import { hasKey } from './ai/client.js';
 
 const DEMO = `[Couplet 1]
 j'écris la nuit quand la ville s'endort
@@ -58,6 +64,9 @@ const state = {
   usage: new Map(),                  // idée → sons validés où elle est dite
   album: ALL_ALBUMS,                 // projet affiché dans la vue d'ensemble
   lexReady: false,
+  analyses: store.loadAnalyses(),    // lectures IA gardées par texte
+  profile: store.loadProfile(),      // profil d'écriture (IA)
+  syntheses: store.loadSyntheses(),  // synthèses de projet (IA)
 };
 
 // Corrections de prononciation : appliquées avant toute analyse
@@ -94,7 +103,13 @@ const sidebar = createSidebar(
     onBpm: (v) => { if (v >= 40 && v <= 240) setProjectField('bpm', v); else sidebar.syncEdit(current()); },
     onKey: (v) => setProjectField('key', v),
     onAlbum: (v) => { setProjectField('album', v); refreshIdeas(); },
-    onStatus: (v) => { setProjectField('status', v); sidebar.syncEdit(current()); save.flush(); refreshIdeas(); },
+    onStatus: (v) => {
+      setProjectField('status', v);
+      sidebar.syncEdit(current());
+      save.flush();
+      refreshIdeas();
+      if (v === 'valide') assistant.onValidated();
+    },
     onExport: () => exportCurrent(),
     onDelete: () => deleteCurrent(),
   },
@@ -136,8 +151,13 @@ const understanding = createUnderstanding({
     afterLexChange(word);
   },
   onUseLine: (text) => { setView('write'); editor.insertLineBelow(text); },
-  onGotoLine: (i) => { setView('write'); requestAnimationFrame(() => editor.gotoLine(i)); },
+  onGotoLine: (i) => gotoLine(i),
 });
+
+function gotoLine(i) {
+  setView('write');
+  requestAnimationFrame(() => editor.gotoLine(i));
+}
 
 function afterLexChange(word) {
   resetCaches();
@@ -149,12 +169,16 @@ function afterLexChange(word) {
 const ideasView = createIdeasView({
   count: $('#ideasCount'), paste: $('#ideasPaste'), importBtn: $('#ideasImportBtn'), preview: $('#ideasPreview'),
   details: $('#ideasImport'), search: $('#ideasSearch'), filter: $('#ideasFilter'), themes: $('#ideasThemes'), list: $('#ideasList'),
+  ai: $('#ideasAI'),
 }, {
+  onClassify: () => assistant.runClassify(),
+  onOpenSettings: () => openSettings(),
   onImport: (frags) => {
     const known = new Set(state.ideas.map((i) => i.text));
     const added = frags.filter((f) => !known.has(f)).map((f) => store.newIdea(f));
     state.ideas.push(...added);
     saveIdeas();
+    if (added.length && hasKey()) assistant.runClassify();      // l'IA lit les nouvelles idées
     return added.length;
   },
   onInsert: (text) => { setView('write'); editor.insertLineBelow(text); },
@@ -169,16 +193,73 @@ function saveIdeas() {
   updateInspector();
 }
 
-const overview = createOverview({ select: $('#albumSelect'), body: $('#albumBody'), jargon: $('#jargonList') }, {
-  onSelectAlbum: (v) => { state.album = v; refreshOverview(); },
+const overview = createOverview({
+  select: $('#albumSelect'), body: $('#albumBody'), synth: $('#synthBody'), profile: $('#profileBody'), jargon: $('#jargonList'),
+}, {
+  onSelectAlbum: (v) => { state.album = v; refreshOverview(); assistant.renderSynthesis(); },
   onShowIdeas: (f) => { ideasView.setFilter(f); showIdeas(); },
-  onWord: (w) => { setView('inspect'); understanding.editWord(w); },
+  onWord: (w) => { setView('inspect'); analyseTabs.show('line'); understanding.editWord(w); },
+  onSynthesize: () => assistant.runSynthesis(),
+  onProfile: () => assistant.runProfile(),
+  onOpenSettings: () => openSettings(),
 });
+
+/* ====================== IA : analyse, Souffle-moi, profil, synthèse ====================== */
+const analysisView = createAnalysisView({
+  root: $('#aiAnalysis'), chart: $('#rhythmChart'), chartNote: $('#rhythmNote'), badge: $('#aiBadge'),
+}, {
+  onAnalyze: () => assistant.runAnalysis(),
+  onCancel: () => assistant.cancelAnalysis(),
+  onGotoLine: (i) => gotoLine(i),
+  onInsertIdea: (id) => {
+    const idea = state.ideas.find((x) => x.id === id);
+    if (idea) { setView('write'); editor.insertLineBelow(idea.text); }
+  },
+  onOpenSettings: () => openSettings(),
+});
+
+const suggest = createSuggestSheet({
+  sheet: $('#suggestSheet'), backdrop: $('#sheetBackdrop'), body: $('#suggestBody'), closeBtn: $('#suggestClose'),
+}, {
+  onRequest: () => assistant.runSuggest(),
+  onCancel: () => assistant.cancelSuggest(),
+  onUseEnding: (text) => editor.appendToLine(text),
+  onUseLine: (text) => editor.insertLineBelow(text),
+  onOpenSettings: () => openSettings(),
+});
+$('#btnSuggest').addEventListener('click', () => assistant.openSuggest());
+
+const textsTabs = createSubtabs($('#textsView'));
+const analyseTabs = createSubtabs($('#inspector'), (tab) => { if (tab === 'text') assistant.maybeAutoAnalyze(); });
+
+function openSettings() {
+  setView('inspect');
+  analyseTabs.show('settings');
+}
+
+const assistant = createAssistant({
+  state, store, editor, current,
+  views: { analysisView, suggest, overview, ideasView, understanding },
+  refreshIdeas: () => refreshIdeas(),
+  albumTexts: () => {
+    const albums = new Set(state.projects.map((p) => p.album).filter(Boolean));
+    const named = albums.has(state.album);
+    return { albumName: named ? state.album : '', texts: named ? state.projects.filter((p) => p.album === state.album) : state.projects };
+  },
+  // L'onglet Analyse → Texte est-il à l'écran ? (sur ordinateur la colonne est toujours visible)
+  analysisVisible: () => (!isMobile() || app.dataset.view === 'inspect') && analyseTabs.current() === 'text',
+  openSettings,
+});
+
+const aiSettings = createAISettings($('#aiSettings'), { onChange: () => { assistant.renderAll(); assistant.maybeAutoAnalyze(); } });
 
 /* ====================== Compréhension (thèmes, figures, idées, projet) ====================== */
 const refreshSummary = debounce(() => {
   const p = current();
   if (!state.analysis || !p) return;
+  analysisView.renderRhythm(state.analysis.lines);
+  assistant.renderAnalysis();                       // bandeau « le texte a changé » si besoin
+  if (state.analyses[p.id]) return;                 // la lecture IA remplace le repérage local
   const words = new Set(contentWords(p.text));
   understanding.renderSummary({
     themes: detectThemes(p.text),
@@ -190,15 +271,16 @@ const refreshSummary = debounce(() => {
 }, 600);
 
 const refreshIdeas = debounce(() => {
-  state.usage = ideaUsage(state.ideas, state.projects);
+  state.usage = ideaUsage(state.ideas, state.projects, state.analyses);
   ideasView.update({ ideas: state.ideas, usage: state.usage });
+  assistant.renderIdeasAI();
   refreshOverview();
 }, 300);
 
 function refreshOverview() {
   const albums = [...new Set(state.projects.map((p) => p.album).filter(Boolean))].sort();
   const texts = albums.includes(state.album) ? state.projects.filter((p) => p.album === state.album) : state.projects;
-  overview.render({ albums, selected: state.album, report: albumReport(texts, state.ideas, state.usage) });
+  overview.render({ albums, selected: state.album, report: albumReport(texts, state.ideas, state.usage, state.analyses) });
 }
 
 /** Mots que tu emploies et que le dictionnaire ne connaît pas (argot, jargon, mots inventés). */
@@ -294,6 +376,7 @@ function openProject(id) {
   sidebar.renderProjects(state.projects, state.currentId);
   store.saveCurrentId(id);
   analyze();
+  assistant.onProjectOpened();
   if (!isMobile()) editor.focus();   // sur téléphone, ne pas ouvrir le clavier tout seul
 }
 
@@ -301,6 +384,7 @@ function deleteCurrent() {
   const p = current();
   if (!confirm(`Supprimer « ${p.title} » ? Cette action est définitive.`)) return;
   state.projects = state.projects.filter((x) => x.id !== p.id);
+  assistant.forget(p.id);
   if (!state.projects.length) createProject();
   save.flush();
   refreshTics();
@@ -390,6 +474,7 @@ function setView(view) {
   } else {
     ta.blur();
   }
+  if (view === 'inspect') assistant.maybeAutoAnalyze();
 }
 $$('#tabbar button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
 
@@ -447,4 +532,5 @@ syncToggles();
 openProject(state.currentId);
 refreshTics.flush();
 refreshIdeas.flush();
+assistant.renderAll();
 setStatus('Prêt');

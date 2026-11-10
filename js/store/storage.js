@@ -53,3 +53,14 @@ export const newIdea = (text) => ({ id: uid(), text, createdAt: Date.now() });
 /* ---------- Dictionnaire perso : { mot: { as: 'se prononce comme', phon } } ---------- */
 export const loadUserLex = () => read(KEY_USERLEX, {});
 export const saveUserLex = (lex) => write(KEY_USERLEX, lex);
+
+/* ---------- Résultats IA (gardés pour ne pas repayer une analyse déjà faite) ---------- */
+// analyses : { [idTexte]: { hash, at, model, cost, data } }
+export const loadAnalyses = () => read('frm.analyses.v1', {});
+export const saveAnalyses = (a) => write('frm.analyses.v1', a);
+// profil d'écriture : { at, data } | null
+export const loadProfile = () => read('frm.profile.v1', null);
+export const saveProfile = (p) => write('frm.profile.v1', p);
+// synthèses de projet : { [nomProjet]: { at, data } }
+export const loadSyntheses = () => read('frm.synth.v1', {});
+export const saveSyntheses = (s) => write('frm.synth.v1', s);

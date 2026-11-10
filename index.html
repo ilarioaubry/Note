@@ -25,50 +25,58 @@
   </header>
 
   <!-- ============ Colonne gauche : projets ============ -->
-  <aside class="col col-left">
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Textes</h2>
-        <div class="head-actions">
-          <button class="btn btn-sm desk-only" data-left="ideas" title="Ouvrir la banque d'idées">Idées ✦</button>
-          <button class="btn btn-accent" id="btnNew" title="Nouveau texte">＋ Nouveau</button>
-        </div>
+  <aside class="col col-left view" id="textsView">
+    <div class="view-head">
+      <h1>Textes</h1>
+      <div class="head-actions">
+        <button class="btn btn-sm desk-only" data-left="ideas" title="Ouvrir la banque d'idées">Idées ✦</button>
+        <button class="btn btn-accent" id="btnNew" title="Nouveau texte">＋ Nouveau</button>
       </div>
+    </div>
+    <div class="subtabs" role="tablist" aria-label="Textes">
+      <button role="tab" data-tab="list" aria-selected="true">Textes</button>
+      <button role="tab" data-tab="album" aria-selected="false">Projet</button>
+      <button role="tab" data-tab="profile" aria-selected="false">Profil</button>
+    </div>
+
+    <section class="pane" data-pane="list">
       <ul class="project-list" id="projectList"></ul>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Projet</h2>
+    </section>
+
+    <section class="pane" data-pane="album" hidden>
+      <label class="pane-select"><span class="muted">Projet affiché</span>
         <select class="mini-select" id="albumSelect" aria-label="Projet affiché"></select>
+      </label>
+      <div id="albumBody"></div>
+      <div id="synthBody"></div>
+    </section>
+
+    <section class="pane" data-pane="profile" hidden>
+      <div id="profileBody"></div>
+      <div class="card">
+        <div class="card-head"><h3>Tes mots qui reviennent</h3><span class="muted small" id="ticsScope"></span></div>
+        <ol class="tics" id="ticsList"></ol>
       </div>
-      <div class="album" id="albumBody"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Radar à Tics</h2>
-        <span class="muted small" id="ticsScope"></span>
+      <div class="card">
+        <div class="card-head"><h3>Ton vocabulaire</h3><span class="muted small">hors dictionnaire</span></div>
+        <div class="chips" id="jargonList"></div>
+        <p class="hint">Touche un mot pour corriger sa prononciation.</p>
       </div>
-      <ol class="tics" id="ticsList"></ol>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><h2>Ton vocabulaire</h2><span class="muted small">hors dictionnaire</span></div>
-      <div class="chips" id="jargonList"></div>
-      <p class="muted small hint">Tes mots d'argot, de jargon ou inventés. Touche un mot pour corriger sa prononciation.</p>
-    </div>
+    </section>
   </aside>
 
   <!-- ============ Banque d'idées ============ -->
-  <aside class="col col-ideas" id="ideasView">
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Banque d'idées</h2>
-        <div class="head-actions">
-          <span class="muted small" id="ideasCount"></span>
-          <button class="btn btn-sm desk-only" data-left="texts" title="Revenir aux textes">← Textes</button>
-        </div>
+  <aside class="col col-ideas view" id="ideasView">
+    <div class="view-head">
+      <h1>Idées</h1>
+      <div class="head-actions">
+        <span class="muted small" id="ideasCount"></span>
+        <button class="btn btn-sm desk-only" data-left="texts" title="Revenir aux textes">← Textes</button>
       </div>
+    </div>
+    <div class="pane">
       <details class="import" id="ideasImport">
-        <summary class="btn">＋ Coller ma note</summary>
+        <summary class="btn btn-accent">＋ Coller ma note</summary>
         <textarea class="input" id="ideasPaste" rows="8" spellcheck="false"
                   placeholder="Colle ici ta note d'idées. Une ligne vide, une ligne de tirets (---) ou une date seule sépare deux idées."></textarea>
         <div class="edit-row">
@@ -76,15 +84,16 @@
           <span class="muted small" id="ideasPreview"></span>
         </div>
       </details>
-      <input class="input" id="ideasSearch" type="search" placeholder="Chercher un mot…" spellcheck="false">
-      <div class="seg ideas-filter" id="ideasFilter" role="group" aria-label="Filtrer les idées">
+      <div id="ideasAI"></div>
+      <input class="input" id="ideasSearch" type="search" placeholder="Chercher dans tes idées…" spellcheck="false">
+      <div class="pills" id="ideasFilter" role="group" aria-label="Filtrer les idées">
         <button data-f="all" aria-pressed="true">Toutes</button>
         <button data-f="free" aria-pressed="false">Pas encore dites</button>
         <button data-f="used" aria-pressed="false">Déjà dites</button>
       </div>
-      <div class="chips" id="ideasThemes"></div>
+      <div class="pills scroll" id="ideasThemes"></div>
+      <ul class="ideas-list" id="ideasList"></ul>
     </div>
-    <ul class="ideas-list" id="ideasList"></ul>
   </aside>
 
   <!-- ============ Colonne centrale : éditeur ============ -->
@@ -102,63 +111,93 @@
     </div>
 
     <div class="legend" id="legend"></div>
+    <button class="fab" id="btnSuggest" type="button" aria-label="Souffle-moi : propositions pour la suite" title="Souffle-moi">✦</button>
   </main>
 
   <!-- ============ Colonne droite : inspecteur ============ -->
-  <aside class="col col-right" id="inspector">
-    <div class="panel">
-      <div class="panel-head"><h2>Affichage</h2></div>
-      <div class="display-opts">
-        <button class="tgl" id="tglXray" aria-pressed="true" title="Surlignage des assonances et rimes">Rayon X</button>
-        <div class="seg" id="segMode" role="group" aria-label="Densité du Rayon X">
-          <button data-mode="assonances" aria-pressed="true" title="Toutes les voyelles toniques qui se répondent">Assonances</button>
-          <button data-mode="rimes" aria-pressed="false" title="Voyelle tonique + consonnes finales identiques">Rimes</button>
-          <button data-mode="consonnes" aria-pressed="false" title="Sons consonnes qui reviennent souvent : allitérations, consonances">Consonnes</button>
-        </div>
-        <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
-        <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
+  <aside class="col col-right view" id="inspector">
+    <div class="view-head">
+      <h1>Analyse</h1>
+      <span class="muted small" id="aiBadge"></span>
+    </div>
+    <div class="subtabs" role="tablist" aria-label="Analyse">
+      <button role="tab" data-tab="text" aria-selected="true">Texte</button>
+      <button role="tab" data-tab="line" aria-selected="false">Ligne</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Réglages</button>
+    </div>
+
+    <!-- Texte : compréhension du texte entier -->
+    <section class="pane" data-pane="text">
+      <div id="aiAnalysis"></div>
+      <div class="card" id="rhythmCard">
+        <div class="card-head"><h3>Rythme</h3><span class="muted small" id="rhythmNote"></span></div>
+        <div class="rhythm" id="rhythmChart"></div>
       </div>
-      <p class="muted small hint">Rayon X colore les voyelles qui se répondent (Assonances, Rimes) ou, en mode Consonnes, les sons consonnes qui reviennent plus souvent que d'habitude : allitérations et consonances.</p>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Inspecteur</h2><span class="muted small" id="insLineNo"></span></div>
-      <div class="ins-line" id="insLine">—</div>
-      <div class="ins-row"><span class="muted">Syllabes</span><b id="insSyl">0</b></div>
-      <div class="ins-label muted">Signature vocalique</div>
-      <div class="signature" id="insSignature"></div>
-      <div class="ins-label muted">Phonétique (API)</div>
-      <div class="ipa" id="insIpa"></div>
-      <div class="ins-row"><span class="muted">Rime finale</span><span id="insRhyme" class="mono"></span></div>
-      <div class="ins-label muted">Allitérations / consonances</div>
-      <div class="cons-chips" id="insCons"></div>
-      <div class="ins-label muted">Mots de la ligne <span class="hint-inline">· touche un mot mal prononcé</span></div>
-      <div class="chips" id="insWords"></div>
-      <div class="pron-editor" id="pronEditor" hidden></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Ça sonne avec…</h2><span class="muted small">ta banque d'idées</span></div>
-      <ul class="sounds" id="soundsList"></ul>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Ce texte</h2></div>
       <div id="textSummary"></div>
-    </div>
+    </section>
 
-    <div class="panel">
-      <div class="panel-head"><h2>Répétitions</h2><span class="muted small" id="insSection"></span></div>
-      <ul class="reps" id="insReps"></ul>
-    </div>
+    <!-- Ligne : la ligne où se trouve le curseur -->
+    <section class="pane" data-pane="line" hidden>
+      <div class="card">
+        <div class="card-head"><h3>Ligne en cours</h3><span class="muted small" id="insLineNo"></span></div>
+        <div class="ins-line" id="insLine">—</div>
+        <div class="line-stats">
+          <div class="stat"><b id="insSyl">0</b><span>syllabes</span></div>
+          <div class="stat grow"><span class="stat-label">Rime finale</span><span id="insRhyme" class="mono"></span></div>
+        </div>
+        <h4>Voyelles</h4>
+        <div class="signature" id="insSignature"></div>
+        <h4>Sons qui reviennent</h4>
+        <div class="cons-chips" id="insCons"></div>
+        <h4>Prononciation</h4>
+        <div class="ipa" id="insIpa"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Mots de la ligne</h3><span class="muted small">touche un mot mal lu</span></div>
+        <div class="chips" id="insWords"></div>
+        <div class="pron-editor" id="pronEditor" hidden></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Ça sonne avec…</h3><span class="muted small">ta banque d'idées</span></div>
+        <ul class="sounds" id="soundsList"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Rimes</h3></div>
+        <input class="input" id="rhymeInput" type="search" placeholder="Mot à faire rimer…" spellcheck="false">
+        <div class="rhyme-results" id="rhymeResults"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Répétitions</h3><span class="muted small" id="insSection"></span></div>
+        <ul class="reps" id="insReps"></ul>
+      </div>
+    </section>
 
-    <div class="panel panel-grow">
-      <div class="panel-head"><h2>Boîte à rimes</h2></div>
-      <input class="input" id="rhymeInput" type="search" placeholder="Mot à faire rimer…" spellcheck="false">
-      <div class="rhyme-results" id="rhymeResults"></div>
-      <p class="muted small" id="lexStatus"></p>
-      <p class="muted small"><span id="offlineTag" hidden>✓ Disponible hors ligne · </span>Dictionnaire : <a href="https://www.lexique.org" target="_blank" rel="noopener">Lexique 3</a> (CC BY-SA 4.0)</p>
-    </div>
+    <!-- Réglages -->
+    <section class="pane" data-pane="settings" hidden>
+      <div class="card">
+        <div class="card-head"><h3>Intelligence artificielle</h3></div>
+        <div id="aiSettings"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Affichage du texte</h3></div>
+        <div class="display-opts">
+          <button class="tgl" id="tglXray" aria-pressed="true" title="Surlignage des assonances et rimes">Rayon X</button>
+          <div class="seg" id="segMode" role="group" aria-label="Ce que colore le Rayon X">
+            <button data-mode="assonances" aria-pressed="true">Assonances</button>
+            <button data-mode="rimes" aria-pressed="false">Rimes</button>
+            <button data-mode="consonnes" aria-pressed="false">Consonnes</button>
+          </div>
+          <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
+          <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
+        </div>
+        <p class="hint">Rayon X colore dans ton texte les voyelles qui se répondent, ou en mode Consonnes les sons qui reviennent (allitérations).</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Dictionnaire</h3></div>
+        <p class="hint" id="lexStatus"></p>
+        <p class="hint"><span id="offlineTag" hidden>✓ Disponible hors ligne · </span><a href="https://www.lexique.org" target="_blank" rel="noopener">Lexique 3</a> (CC BY-SA 4.0)</p>
+      </div>
+    </section>
   </aside>
 
   <!-- ============ Lecteur audio ============ -->
@@ -206,6 +245,15 @@
     <button data-view="ideas" aria-selected="false"><span class="ti">✦</span>Idées</button>
   </nav>
 </div>
+
+<div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+<section class="sheet" id="suggestSheet" hidden aria-label="Souffle-moi">
+  <div class="sheet-head">
+    <h2>✦ Souffle-moi</h2>
+    <button class="btn btn-sm" id="suggestClose" type="button" aria-label="Fermer">Fermer</button>
+  </div>
+  <div class="sheet-body" id="suggestBody"></div>
+</section>
 
 <div class="drop-overlay" id="dropOverlay"><div>Dépose ton instru (.mp3 / .wav) ou un .txt</div></div>
 
