@@ -83,3 +83,23 @@ export function albumReport(texts, ideas, usage, analyses = {}) {
     used: used.length,
   };
 }
+
+/**
+ * Où en est un objectif du projet final (« ce que je veux retrouver ») :
+ *  - coché à la main → fait ;
+ *  - réalisé dans un son validé (d'après la lecture IA du texte) → fait ;
+ *  - réalisé dans un brouillon → partiel ;
+ *  - sinon, le dernier bilan de synthèse IA s'il existe ; sinon à faire.
+ * @returns {{statut:'fait'|'partiel'|'manquant', ou:string, source:'main'|'texte'|'synthese'|null}}
+ */
+export function goalStatus(goal, { projects, analyses = {}, syntheses = {} }) {
+  if (goal.done) return { statut: 'fait', ou: 'coché', source: 'main' };
+  const touching = projects.filter((p) => (analyses[p.id]?.data?.objectifs_touches ?? []).some((x) => x.id === goal.id));
+  const validated = touching.filter((p) => p.status === 'valide');
+  if (validated.length) return { statut: 'fait', ou: validated.map((p) => p.title).join(', '), source: 'texte' };
+  if (touching.length) return { statut: 'partiel', ou: `en cours dans ${touching.map((p) => `« ${p.title} »`).join(', ')}`, source: 'texte' };
+  const latest = Object.values(syntheses).filter((x) => x?.data?.goals).sort((a, b) => b.at - a.at)[0];
+  const fromSynth = latest ? new Map(latest.data.goals).get(goal.id) : null;
+  if (fromSynth) return { ...fromSynth, source: 'synthese' };
+  return { statut: 'manquant', ou: '', source: null };
+}

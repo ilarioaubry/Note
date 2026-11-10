@@ -42,7 +42,7 @@ function analyzeLine(text, index, opts) {
         // une entrée par syllabe prononcée : { start, end (dans le mot), cls, hl, rich, endRhyme, multi }
         syls: syllabify(tok.text, opts).map((x) => ({ ...x, hl: null, rich: false, endRhyme: false, multi: null })),
         // consonnes prononcées : { s, e (lettres du mot), ph, hl } ; hl = fait partie d'une allitération / consonance
-        cons: consonantsOf(tok.text).map((c) => ({ ...c, hl: false })),
+        cons: consonantsOf(tok.text).map((c) => ({ ...c, hl: false, strong: false })),
         rep: false,
       });
       syl += a.syllables;

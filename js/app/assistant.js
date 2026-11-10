@@ -10,17 +10,18 @@
  *  - Synthèse de projet.
  */
 import { hasKey, loadAIConfig, MODELS } from '../ai/client.js';
-import { analyzeWithAI, suggestWithAI, profileWithAI, classifyIdeasWithAI, synthesizeWithAI } from '../ai/features.js';
+import { analyzeWithAI, suggestWithAI, profileWithAI, classifyIdeasWithAI, synthesizeWithAI, suggestRefsWithAI } from '../ai/features.js';
 import { hashText } from '../ai/prompts.js';
 import { analyzeWord, countSyllables } from '../engine/phonetics.js';
 
 const isLyric = (l) => l && !l.isMeta && !l.isEmpty && l.words?.length > 0;
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 
-export function createAssistant({ state, store, editor, current, views, refreshIdeas, albumTexts, analysisVisible, openSettings }) {
+export function createAssistant({ state, store, editor, current, views, refreshIdeas, refreshRefs, albumTexts, analysisVisible, openSettings }) {
   const { analysisView, suggest, overview, ideasView, understanding } = views;
-  const busy = { analysis: null, suggest: null, profile: false, synth: false, classify: false };
-  const errors = { analysis: null, profile: null, synth: null, classify: null };
+  const busy = { analysis: null, suggest: null, profile: false, synth: false, classify: false, refs: false };
+  const errors = { analysis: null, profile: null, synth: null, classify: null, refs: null };
+  let refSuggestions = [];
   let autoTried = null;          // empreinte du dernier texte analysé automatiquement (évite les boucles après une erreur)
   let lastSignature = '';
   let classifyProgress = { done: 0, total: 0 };
@@ -28,6 +29,7 @@ export function createAssistant({ state, store, editor, current, views, refreshI
   const lines = () => state.analysis?.lines ?? [];
   const lyricCount = () => lines().filter(isLyric).length;
   const ideasById = () => new Map(state.ideas.map((i) => [i.id, i]));
+  const refsById = () => new Map(state.refs.map((r) => [r.id, r]));
   const profileData = () => state.profile?.data ?? null;
 
   /** Intitulés de thèmes déjà utilisés (idées classées, autres textes analysés) : l'IA les reprend d'un son à l'autre. */
@@ -60,10 +62,10 @@ export function createAssistant({ state, store, editor, current, views, refreshI
     understanding.showSummary(st !== 'ready' && st !== 'loading');
 
     // On ne redessine que si quelque chose a changé (sinon le minuteur et le défilement sauteraient)
-    const signature = [p.id, st, stale, stored?.at, errors.analysis, state.ideas.length].join('|');
+    const signature = [p.id, st, stale, stored?.at, errors.analysis, state.ideas.length, state.refs.length].join('|');
     if (!force && signature === lastSignature) return;
     lastSignature = signature;
-    analysisView.render({ state: st, result: stored, stale, error: errors.analysis, ideasById: ideasById() });
+    analysisView.render({ state: st, result: stored, stale, error: errors.analysis, ideasById: ideasById(), refsById: refsById() });
   }
 
   async function runAnalysis() {
@@ -77,7 +79,7 @@ export function createAssistant({ state, store, editor, current, views, refreshI
     let ok = false;
     try {
       const res = await analyzeWithAI({
-        project: p, lines: lines(), ideas: state.ideas, profile: profileData(), knownThemes: knownThemes(p.id), signal: controller.signal,
+        project: p, lines: lines(), ideas: state.ideas, profile: profileData(), refs: state.refs, knownThemes: knownThemes(p.id), signal: controller.signal,
       });
       state.analyses[p.id] = res;
       store.saveAnalyses(state.analyses);
@@ -88,7 +90,7 @@ export function createAssistant({ state, store, editor, current, views, refreshI
       if (busy.analysis?.controller === controller) busy.analysis = null;
       renderAnalysis();
     }
-    if (ok) refreshIdeas();            // les idées reconnues comptent si le texte est validé
+    if (ok) { refreshIdeas(); refreshRefs(); }    // idées reconnues, objectifs cochés par le texte
     return ok;
   }
 
@@ -130,14 +132,14 @@ export function createAssistant({ state, store, editor, current, views, refreshI
   }
 
   /** Vérifie une proposition avec le moteur local : syllabes, rythme, rime. */
-  function annotate(text, { target, rhymeWith, fromIdea = false, base = '' }) {
+  function annotate(text, { target, rhymeWith, fromIdea = false, refName = '', base = '' }) {
     const full = `${base} ${text}`.trim();
     const syllables = countSyllables(full);
     const last = full.match(/[\p{L}'’-]+(?=[^\p{L}]*$)/u)?.[0] ?? '';
     const rhymes = Boolean(rhymeWith && last
       && analyzeWord(last).rhymeKey && analyzeWord(last).rhymeKey === analyzeWord(rhymeWith).rhymeKey
       && last.toLowerCase() !== rhymeWith.toLowerCase());
-    return { texte: text, syllables, fit: target ? Math.abs(syllables - target) <= 1 : false, rhymes, fromIdea };
+    return { texte: text, syllables, fit: target ? Math.abs(syllables - target) <= 1 : false, rhymes, fromIdea, refName };
   }
 
   async function runSuggest() {
@@ -151,7 +153,7 @@ export function createAssistant({ state, store, editor, current, views, refreshI
     try {
       const res = await suggestWithAI({
         project: p, lines: lines(), index: ctx.index, target: ctx.target, rhymeWith: ctx.rhymeForNext,
-        ideas: state.ideas, profile: profileData(), signal: controller.signal,
+        ideas: state.ideas, profile: profileData(), refs: state.refs, signal: controller.signal,
       });
       const base = isLyric(ctx.cur) ? ctx.cur.text.trim() : '';
       suggest.render({
@@ -159,7 +161,9 @@ export function createAssistant({ state, store, editor, current, views, refreshI
         context: ctx.label,
         result: {
           fins: base ? res.fins.map((t) => annotate(t, { target: ctx.target, rhymeWith: ctx.rhymeForEnding, base })) : [],
-          suites: res.suites.map((s) => annotate(s.texte, { target: ctx.target, rhymeWith: ctx.rhymeForNext, fromIdea: Boolean(s.ideaId) })),
+          suites: res.suites.map((s) => annotate(s.texte, {
+            target: ctx.target, rhymeWith: ctx.rhymeForNext, fromIdea: Boolean(s.ideaId), refName: refsById().get(s.refId)?.text ?? '',
+          })),
         },
       });
     } catch (err) {
@@ -190,7 +194,7 @@ export function createAssistant({ state, store, editor, current, views, refreshI
     errors.profile = null;
     renderProfile();
     try {
-      const res = await profileWithAI({ texts, ideas: state.ideas });
+      const res = await profileWithAI({ texts, ideas: state.ideas, refs: state.refs });
       state.profile = { at: res.at, data: res.data };
       store.saveProfile(state.profile);
     } catch (err) {
@@ -219,7 +223,7 @@ export function createAssistant({ state, store, editor, current, views, refreshI
     renderIdeasAI();
     try {
       const { meta } = await classifyIdeasWithAI({
-        ideas: state.ideas, profile: profileData(),
+        ideas: state.ideas, profile: profileData(), refs: state.refs,
         onProgress: (done) => { classifyProgress.done = done; renderIdeasAI(); },
       });
       for (const idea of state.ideas) if (meta.has(idea.id)) idea.ai = meta.get(idea.id);
@@ -251,16 +255,44 @@ export function createAssistant({ state, store, editor, current, views, refreshI
       const { albumName, texts } = albumTexts();
       const res = await synthesizeWithAI({
         album: albumName, texts: texts.filter((t) => t.text.trim()), analyses: state.analyses,
-        ideas: state.ideas, usage: state.usage, profile: profileData(),
+        ideas: state.ideas, usage: state.usage, profile: profileData(), refs: state.refs,
       });
       state.syntheses[key] = { at: res.at, data: res.data };
       store.saveSyntheses(state.syntheses);
+      refreshRefs();
     } catch (err) {
       if (err.code !== 'abort') errors.synth = err.message;
     } finally {
       busy.synth = false;
       renderSynthesis();
     }
+  }
+
+  /* ---------------- Références à explorer ---------------- */
+
+  function refsAIState() {
+    return busy.refs ? 'loading' : errors.refs ? 'error' : !hasKey() ? 'nokey' : 'idle';
+  }
+
+  async function runSuggestRefs() {
+    if (!hasKey() || busy.refs) { refreshRefs(); return; }
+    busy.refs = true;
+    errors.refs = null;
+    refreshRefs();
+    try {
+      const res = await suggestRefsWithAI({ ideas: state.ideas, profile: profileData(), refs: state.refs });
+      refSuggestions = res.list;
+    } catch (err) {
+      if (err.code !== 'abort') errors.refs = err.message;
+    } finally {
+      busy.refs = false;
+      refreshRefs();
+    }
+  }
+
+  /** Une suggestion adoptée sort de la liste « À explorer ». */
+  function dropRefSuggestion(name) {
+    refSuggestions = refSuggestions.filter((s) => s.nom !== name);
   }
 
   /* ---------------- Événements de l'application ---------------- */
@@ -299,6 +331,7 @@ export function createAssistant({ state, store, editor, current, views, refreshI
     renderProfile, runProfile,
     renderIdeasAI, runClassify,
     renderSynthesis, runSynthesis,
+    runSuggestRefs, dropRefSuggestion, refsAIState, refSuggestions: () => refSuggestions, refsError: () => errors.refs,
     onValidated, onProjectOpened, forget, renderAll, openSettings,
   };
 }

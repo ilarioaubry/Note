@@ -39,6 +39,7 @@ export const DEFAULT_SETTINGS = {
   reps: true,          // Surlignage des répétitions
   elision: true,       // e caducs internes non comptés
   strict: false,       // distinguer é / è
+  cons: true,          // modes Assonances / Rimes : afficher aussi les consonnes vraiment marquées
   click: false,        // clic du métronome
 };
 
@@ -64,3 +65,9 @@ export const saveProfile = (p) => write('frm.profile.v1', p);
 // synthèses de projet : { [nomProjet]: { at, data } }
 export const loadSyntheses = () => read('frm.synth.v1', {});
 export const saveSyntheses = (s) => write('frm.synth.v1', s);
+
+/* ---------- Références, artistes et objectifs du projet final ----------
+   [{ id, kind: 'artiste' | 'reference' | 'objectif', text, note, done, createdAt }] */
+export const loadRefs = () => read('frm.refs.v1', []);
+export const saveRefs = (r) => write('frm.refs.v1', r);
+export const newRef = (kind, text, note = '') => ({ id: uid(), kind, text, note, done: false, createdAt: Date.now() });

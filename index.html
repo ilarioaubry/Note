@@ -74,7 +74,36 @@
         <button class="btn btn-sm desk-only" data-left="texts" title="Revenir aux textes">← Textes</button>
       </div>
     </div>
-    <div class="pane">
+    <div class="subtabs" role="tablist" aria-label="Idées">
+      <button role="tab" data-tab="bank" aria-selected="true">Idées</button>
+      <button role="tab" data-tab="refs" aria-selected="false">Références</button>
+      <button role="tab" data-tab="goals" aria-selected="false">À retrouver</button>
+    </div>
+
+    <section class="pane" data-pane="refs" hidden>
+      <form class="card add-form" id="refForm" autocomplete="off">
+        <div class="pills" role="group" aria-label="Type">
+          <button type="button" data-kind="artiste" aria-pressed="true">Artiste</button>
+          <button type="button" data-kind="reference" aria-pressed="false">Référence</button>
+        </div>
+        <input class="input" id="refText" type="text" spellcheck="false" placeholder="Un artiste : Nekfeu, Kendrick, Brel…">
+        <input class="input" id="refNote" type="text" spellcheck="false" placeholder="Ce que tu en retiens (facultatif) : l'introspection, les images…">
+        <button class="btn btn-accent" type="submit">Ajouter</button>
+      </form>
+      <div id="refsAI"></div>
+      <div id="refsList"></div>
+    </section>
+
+    <section class="pane" data-pane="goals" hidden>
+      <form class="card add-form" id="goalForm" autocomplete="off">
+        <input class="input" id="goalText" type="text" spellcheck="false" placeholder="Ex. : un son sur mon père, un refrain chanté, une référence à La Haine…">
+        <button class="btn btn-accent" type="submit">Ajouter à la liste</button>
+      </form>
+      <div id="goalsMeter"></div>
+      <div id="goalsList"></div>
+    </section>
+
+    <div class="pane" data-pane="bank">
       <details class="import" id="ideasImport">
         <summary class="btn btn-accent">＋ Coller ma note</summary>
         <textarea class="input" id="ideasPaste" rows="8" spellcheck="false"
@@ -187,10 +216,11 @@
             <button data-mode="rimes" aria-pressed="false">Rimes</button>
             <button data-mode="consonnes" aria-pressed="false">Consonnes</button>
           </div>
+          <button class="tgl" id="tglCons" aria-pressed="true" title="Avec les assonances et les rimes, entoure aussi les consonnes vraiment marquées (allitérations)">+ Consonnes marquées</button>
           <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
           <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
         </div>
-        <p class="hint">Rayon X colore dans ton texte les voyelles qui se répondent, ou en mode Consonnes les sons qui reviennent (allitérations).</p>
+        <p class="hint">Rayon X colore les voyelles qui se répondent. Avec « + Consonnes marquées », les consonnes d'une vraie allitération sont en plus entourées. Le mode Consonnes montre toutes les consonnes qui reviennent, sans les voyelles.</p>
       </div>
       <div class="card">
         <div class="card-head"><h3>Dictionnaire</h3></div>

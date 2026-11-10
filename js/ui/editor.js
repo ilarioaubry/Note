@@ -80,13 +80,29 @@ export function createEditor(root, { onInput, onCaret }) {
     if (beats) beats.forEach((b, k) => { html += `<i class="beat${b % 2 === 0 ? ' snare' : ''}" data-b="${b}" data-k="${k}"></i>`; });
     if (opts.mode === 'consonnes') return html + (opts.xray ? consonantHTML(w) : escapeHTML(w.text));
     if (!w.syls.length) return html + escapeHTML(w.text);
+    // Consonnes vraiment marquées (allitérations) : un contour autour des lettres, par-dessus la couleur des voyelles
+    const fam = new Array(w.text.length).fill(null);
+    if (opts.xray && opts.cons) {
+      for (const c of w.cons) if (c.strong) for (let i = c.s; i < c.e; i++) fam[i] ??= FAMILY[c.ph] ?? 'k';
+    }
+    const inner = (a, b) => {
+      let out = '';
+      for (let i = a; i < b;) {
+        let j = i + 1;
+        while (j < b && fam[j] === fam[i]) j++;
+        const t = escapeHTML(w.text.slice(i, j));
+        out += fam[i] ? `<span class="c ring" data-c="${fam[i]}">${t}</span>` : t;
+        i = j;
+      }
+      return out;
+    };
     for (const sy of w.syls) {
       const attrs = [];
       const cls = ['s'];
       if (opts.xray && sy.hl) attrs.push(`data-v="${sy.hl}"`);
       if (opts.xray && sy.rich) cls.push('rich');
       if (opts.xray && sy.endRhyme) cls.push('end');
-      html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${escapeHTML(w.text.slice(sy.start, sy.end))}</span>`;
+      html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${inner(sy.start, sy.end)}</span>`;
     }
     return html;
   }

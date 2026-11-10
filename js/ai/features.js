@@ -4,9 +4,9 @@
  */
 import { askJSON } from './client.js';
 import {
-  buildSystem, analysisPrompt, suggestPrompt, profilePrompt, ideasPrompt, synthesisPrompt,
-  ANALYSIS_SCHEMA, SUGGEST_SCHEMA, PROFILE_SCHEMA, IDEAS_SCHEMA, SYNTHESIS_SCHEMA,
-  normalizeAnalysis, normalizeSuggestions, resolveIdea, ideaTag, hashText,
+  buildSystem, analysisPrompt, suggestPrompt, profilePrompt, ideasPrompt, synthesisPrompt, refsPrompt,
+  ANALYSIS_SCHEMA, SUGGEST_SCHEMA, PROFILE_SCHEMA, IDEAS_SCHEMA, SYNTHESIS_SCHEMA, REFS_SCHEMA,
+  normalizeAnalysis, normalizeSuggestions, normalizeGoals, normalizeRefSuggestions, resolveIdea, ideaTag, hashText,
 } from './prompts.js';
 
 /**
@@ -14,10 +14,10 @@ import {
  * @param {{project:object, lines:object[], ideas:object[], profile:object|null, signal?:AbortSignal}} p
  * @returns {Promise<{hash:string, at:number, model:string, cost:number, data:object}>}
  */
-export async function analyzeWithAI({ project, lines, ideas, profile, knownThemes = [], signal }) {
+export async function analyzeWithAI({ project, lines, ideas, profile, refs = [], knownThemes = [], signal }) {
   const hash = hashText(project.text);        // empreinte prise avant l'appel : le texte peut changer pendant
   const res = await askJSON({
-    system: buildSystem({ ideas, profile }),
+    system: buildSystem({ ideas, profile, refs }),
     user: analysisPrompt({ title: project.title, lines, knownThemes }),
     schema: ANALYSIS_SCHEMA,
     effort: 'medium',
@@ -29,7 +29,7 @@ export async function analyzeWithAI({ project, lines, ideas, profile, knownTheme
     at: Date.now(),
     model: res.model,
     cost: res.cost,
-    data: normalizeAnalysis(res.data, { lineCount: lines.length, ideas }),
+    data: normalizeAnalysis(res.data, { lineCount: lines.length, ideas, refs }),
   };
 }
 
@@ -37,22 +37,22 @@ export async function analyzeWithAI({ project, lines, ideas, profile, knownTheme
  * « Souffle-moi » : fins de ligne et suites possibles pour la ligne en cours.
  * @returns {Promise<{fins:string[], suites:{texte:string, ideaId:string|null}[], cost:number}>}
  */
-export async function suggestWithAI({ project, lines, index, target, rhymeWith, ideas, profile, signal }) {
+export async function suggestWithAI({ project, lines, index, target, rhymeWith, ideas, profile, refs = [], signal }) {
   const res = await askJSON({
-    system: buildSystem({ ideas, profile }),
+    system: buildSystem({ ideas, profile, refs }),
     user: suggestPrompt({ title: project.title, lines, index, target, rhymeWith }),
     schema: SUGGEST_SCHEMA,
     effort: 'low',
     maxTokens: 8000,
     signal,
   });
-  return { ...normalizeSuggestions(res.data, ideas), cost: res.cost };
+  return { ...normalizeSuggestions(res.data, ideas, refs), cost: res.cost };
 }
 
 /** Profil d'écriture, à partir de tous les textes et de la banque d'idées. */
-export async function profileWithAI({ texts, ideas, signal }) {
+export async function profileWithAI({ texts, ideas, refs = [], signal }) {
   const res = await askJSON({
-    system: buildSystem({ ideas, profile: null }),
+    system: buildSystem({ ideas, profile: null, refs }),
     user: profilePrompt({ texts }),
     schema: PROFILE_SCHEMA,
     effort: 'medium',
@@ -80,7 +80,7 @@ export async function profileWithAI({ texts, ideas, signal }) {
  * @param {(done:number,total:number)=>void} [onProgress]
  * @returns {Promise<{meta:Map<string,object>, cost:number}>} id d'idée → { sens, themes, mood }
  */
-export async function classifyIdeasWithAI({ ideas, profile, onProgress, signal }) {
+export async function classifyIdeasWithAI({ ideas, profile, refs = [], onProgress, signal }) {
   const todo = ideas.map((idea, k) => ({ idea, k })).filter(({ idea }) => !idea.ai);
   const meta = new Map();
   let cost = 0;
@@ -89,7 +89,7 @@ export async function classifyIdeasWithAI({ ideas, profile, onProgress, signal }
   for (let i = 0; i < todo.length; i += BATCH) {
     const batch = todo.slice(i, i + BATCH);
     const res = await askJSON({
-      system: buildSystem({ ideas, profile }),
+      system: buildSystem({ ideas, profile, refs }),
       user: ideasPrompt({ tags: batch.map(({ k }) => ideaTag(k)), knownThemes: [...known] }),
       schema: IDEAS_SCHEMA,
       effort: 'low',
@@ -113,7 +113,7 @@ export async function classifyIdeasWithAI({ ideas, profile, onProgress, signal }
  * Synthèse d'un projet (album) : ce qu'il raconte, redites, angles à explorer.
  * @param {{album:string, texts:object[], analyses:object, ideas:object[], usage:Map, profile:object|null}} p
  */
-export async function synthesizeWithAI({ album, texts, analyses, ideas, usage, profile, signal }) {
+export async function synthesizeWithAI({ album, texts, analyses, ideas, usage, profile, refs = [], signal }) {
   const songs = texts.map((t) => {
     const a = analyses[t.id]?.data;
     const summary = a
@@ -123,7 +123,7 @@ export async function synthesizeWithAI({ album, texts, analyses, ideas, usage, p
   });
   const freeTags = ideas.map((i, k) => ({ i, k })).filter(({ i }) => !(usage.get(i.id) ?? []).length).map(({ k }) => ideaTag(k));
   const res = await askJSON({
-    system: buildSystem({ ideas, profile }),
+    system: buildSystem({ ideas, profile, refs }),
     user: synthesisPrompt({ album, songs, freeTags }),
     schema: SYNTHESIS_SCHEMA,
     effort: 'medium',
@@ -138,6 +138,7 @@ export async function synthesizeWithAI({ album, texts, analyses, ideas, usage, p
       vue: String(d.vue ?? '').trim(),
       themes: (d.themes ?? []).map((t) => ({ nom: String(t.nom ?? '').trim(), sons: (t.sons ?? []).map(String) })).filter((t) => t.nom),
       redites: (d.redites ?? []).map((s) => String(s).trim()).filter(Boolean).slice(0, 3),
+      goals: [...normalizeGoals(d.objectifs, refs)],          // [[idObjectif, { statut, ou }], …]
       a_explorer: (d.a_explorer ?? []).slice(0, 4).map((x) => ({
         titre: String(x.titre ?? '').trim(),
         pourquoi: String(x.pourquoi ?? '').trim(),
@@ -145,4 +146,17 @@ export async function synthesizeWithAI({ album, texts, analyses, ideas, usage, p
       })).filter((x) => x.titre),
     },
   };
+}
+
+/** Nouvelles références et influences à explorer, d'après le profil, les idées et la liste actuelle. */
+export async function suggestRefsWithAI({ ideas, profile, refs = [], focus = '', signal }) {
+  const res = await askJSON({
+    system: buildSystem({ ideas, profile, refs }),
+    user: refsPrompt({ focus }),
+    schema: REFS_SCHEMA,
+    effort: 'medium',
+    maxTokens: 8000,
+    signal,
+  });
+  return { list: normalizeRefSuggestions(res.data, refs), cost: res.cost };
 }

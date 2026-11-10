@@ -4,6 +4,7 @@ import { analyzeText } from '../js/engine/analyzer.js';
 import {
   buildSystem, formatBank, numberText, analysisPrompt, suggestPrompt, resolveIdea, normalizeAnalysis,
   normalizeSuggestions, hashText, ANALYSIS_SCHEMA, SUGGEST_SCHEMA, PROFILE_SCHEMA, IDEAS_SCHEMA, SYNTHESIS_SCHEMA,
+  REFS_SCHEMA, formatRefs, resolveRef, normalizeGoals, normalizeRefSuggestions,
 } from '../js/ai/prompts.js';
 import { estimateCost } from '../js/ai/client.js';
 import { ideaUsage, albumReport } from '../js/engine/project.js';
@@ -59,7 +60,7 @@ test('analyse nettoyée : lignes hors texte et idées inconnues écartées', () 
 test('suggestions nettoyées', () => {
   const s = normalizeSuggestions({ fins: [{ texte: '  dans le noir ' }, { texte: '' }], suites: [{ texte: 'une ligne', idee: 'I2' }, { texte: 'autre', idee: '' }] }, ideas);
   assert.deepEqual(s.fins, ['dans le noir']);
-  assert.deepEqual(s.suites, [{ texte: 'une ligne', ideaId: 'b2' }, { texte: 'autre', ideaId: null }]);
+  assert.deepEqual(s.suites, [{ texte: 'une ligne', ideaId: 'b2', refId: null }, { texte: 'autre', ideaId: null, refId: null }]);
 });
 
 test('schémas valides pour les sorties structurées (objets fermés, tout requis)', () => {
@@ -70,7 +71,7 @@ test('schémas valides pour les sorties structurées (objets fermés, tout requi
       Object.values(s.properties).forEach(check);
     } else if (s.type === 'array') check(s.items);
   };
-  [ANALYSIS_SCHEMA, SUGGEST_SCHEMA, PROFILE_SCHEMA, IDEAS_SCHEMA, SYNTHESIS_SCHEMA].forEach(check);
+  [ANALYSIS_SCHEMA, SUGGEST_SCHEMA, PROFILE_SCHEMA, IDEAS_SCHEMA, SYNTHESIS_SCHEMA, REFS_SCHEMA].forEach(check);
 });
 
 test('empreinte de texte et estimation de coût', () => {
@@ -89,4 +90,58 @@ test('idée reformulée : reconnue grâce à l\'analyse IA d\'un texte validé',
   const r = albumReport(texts, ideas, usage, analyses);
   assert.equal(r.used, 1);
   assert.equal(r.covered[0].label, 'La mère');
+});
+
+const refs = [
+  { id: 'r1', kind: 'artiste', text: 'Nekfeu', note: "l'introspection" },
+  { id: 'o1', kind: 'objectif', text: 'un son sur mon père' },
+  { id: 'r2', kind: 'reference', text: 'Scarface' },
+  { id: 'o2', kind: 'objectif', text: 'un refrain chanté', done: true },
+];
+
+test('références (R…) et objectifs (O…) dans le contexte mis en cache', () => {
+  const t = formatRefs(refs);
+  assert.ok(t.includes("[R1] (artiste) Nekfeu — l'introspection"));
+  assert.ok(t.includes('[R2] (référence) Scarface'));
+  assert.ok(t.includes('[O1] un son sur mon père'));
+  assert.ok(t.includes('[O2] un refrain chanté (il le considère comme fait)'));
+  const sys = buildSystem({ ideas, profile: null, refs });
+  assert.equal(sys.length, 3);
+  assert.ok(sys[1].text.includes('[I1]') && sys[1].text.includes('[R1]'), 'idées et références dans le même bloc en cache');
+  assert.equal(resolveRef('R2', refs, 'R'), 'r2');
+  assert.equal(resolveRef('O1', refs, 'O'), 'o1');
+  assert.equal(resolveRef('O3', refs, 'O'), null);
+});
+
+test('analyse : références culturelles et objectifs touchés', () => {
+  const a = normalizeAnalysis({
+    resume: 'x', intention: '', mood: '', fil: '', themes: [], figures: [], points_forts: [], a_retravailler: [],
+    idees_utilisees: [], idees_a_placer: [],
+    references_culturelles: [{ ligne: 2, reference: 'Scarface', explication: "l'ascension", tag: 'R2' }, { ligne: 3, reference: 'Zidane', explication: 'le coup de tête', tag: '' }],
+    objectifs_touches: [{ objectif: 'O1', ligne: 2, comment: 'le père apparaît' }, { objectif: 'O9', ligne: 2, comment: '' }],
+    piste_reference: 'R1 pour la fin',
+  }, { lineCount: 4, ideas, refs });
+  assert.deepEqual(a.references_culturelles.map((x) => [x.reference, x.refId]), [['Scarface', 'r2'], ['Zidane', null]]);
+  assert.deepEqual(a.objectifs_touches.map((x) => x.id), ['o1']);
+  assert.equal(a.piste_reference, 'R1 pour la fin');
+});
+
+test('bilan des objectifs et suggestions de références', () => {
+  const g = normalizeGoals([{ objectif: 'O1', statut: 'partiel', ou: 'Son 2' }, { objectif: 'O2', statut: 'bof', ou: '' }], refs);
+  assert.deepEqual([...g], [['o1', { statut: 'partiel', ou: 'Son 2' }]]);
+  const r = normalizeRefSuggestions({ suggestions: [{ nom: 'Nekfeu', type: 'artiste', pourquoi: 'déjà là' }, { nom: 'La Haine', type: 'reference', pourquoi: 'la banlieue' }] }, refs);
+  assert.deepEqual(r.map((x) => [x.nom, x.kind]), [['La Haine', 'reference']]);
+});
+
+test('objectifs : coché, réalisé dans un son validé, en cours, ou d\'après la synthèse', async () => {
+  const { goalStatus } = await import('../js/engine/project.js');
+  const projects = [{ id: 't1', title: 'Son 1', status: 'valide' }, { id: 't2', title: 'Brouillon', status: 'brouillon' }];
+  const analyses = { t1: { data: { objectifs_touches: [{ id: 'o1' }] } }, t2: { data: { objectifs_touches: [{ id: 'o3' }] } } };
+  const syntheses = { __all__: { at: 1, data: { goals: [['o4', { statut: 'partiel', ou: 'effleuré dans Son 1' }]] } } };
+  const ctx = { projects, analyses, syntheses };
+  assert.equal(goalStatus({ id: 'o1' }, ctx).statut, 'fait');
+  assert.equal(goalStatus({ id: 'o2', done: true }, ctx).source, 'main');
+  assert.equal(goalStatus({ id: 'o3' }, ctx).statut, 'partiel');
+  assert.deepEqual(goalStatus({ id: 'o4' }, ctx), { statut: 'partiel', ou: 'effleuré dans Son 1', source: 'synthese' });
+  assert.equal(goalStatus({ id: 'o5' }, ctx).statut, 'manquant');
 });

@@ -49,7 +49,7 @@ export function createAnalysisView({ root, chart, chartNote, badge }, { onAnalyz
    * @param {string} [p.error]
    * @param {Map<string,object>} [p.ideasById]
    */
-  function render({ state, result, stale, error, ideasById = new Map() }) {
+  function render({ state, result, stale, error, ideasById = new Map(), refsById = new Map() }) {
     stopTimer();
     if (state === 'nokey') {
       root.innerHTML = `<div class="card hero">
@@ -107,6 +107,8 @@ export function createAnalysisView({ root, chart, chartNote, badge }, { onAnalyz
         <p class="lead"><b>Piste</b> ${escapeHTML(x.piste)}</p></div>`).join('');
     const figs = d.figures.map((f) => `<li>${lineChip(f.ligne)}<div><b>${escapeHTML(f.type)}</b> <q>${escapeHTML(f.extrait)}</q><p>${escapeHTML(f.effet)}</p></div></li>`).join('');
     const used = d.idees_utilisees.filter((x) => idea(x.id)).map((x) => `<li>${lineChip(x.ligne)}<div><span>${escapeHTML(firstLine(idea(x.id).text))}</span><p>${escapeHTML(x.comment)}</p></div></li>`).join('');
+    const refs = (d.references_culturelles ?? []).map((x) => `<li>${lineChip(x.ligne)}<div><b>${escapeHTML(x.reference)}</b>${x.refId ? ' <span class="pill album">ta référence</span>' : ''}<p>${escapeHTML(x.explication)}</p></div></li>`).join('');
+    const goals = (d.objectifs_touches ?? []).filter((x) => refsById.get(x.id)).map((x) => `<li>${lineChip(x.ligne)}<div><span>${escapeHTML(refsById.get(x.id).text)}</span><p>${escapeHTML(x.comment)}</p></div></li>`).join('');
     const toPlace = d.idees_a_placer.filter((x) => idea(x.id)).map((x) => `<li><div><span>${escapeHTML(firstLine(idea(x.id).text))}</span><p>${escapeHTML(x.pourquoi)}</p></div>
         <button class="btn btn-sm" data-insert="${x.id}" type="button">Insérer</button></li>`).join('');
 
@@ -126,6 +128,9 @@ export function createAnalysisView({ root, chart, chartNote, badge }, { onAnalyz
       ${section('Figures de style', figs ? `<ul class="rows">${figs}</ul>` : '')}
       ${section('Tes idées dans ce texte', used ? `<ul class="rows">${used}</ul>` : '')}
       ${section('Idées à placer ici', toPlace ? `<ul class="rows actions">${toPlace}</ul>` : '')}
+      ${section('Références dans ce texte', refs ? `<ul class="rows">${refs}</ul>` : '')}
+      ${d.piste_reference ? section('Piste côté références', `<p class="read-sm">${escapeHTML(d.piste_reference)}</p>`) : ''}
+      ${section('Ce que ce texte coche dans ton projet', goals ? `<ul class="rows">${goals}</ul>` : '')}
       <div class="ai-foot">
         <span class="muted small">Analysé ${timeAgo(result.at)} · ${money(result.cost ?? 0)}</span>
         <button class="btn btn-sm" data-act="analyze" type="button">Relancer</button>

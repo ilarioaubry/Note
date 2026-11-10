@@ -57,6 +57,7 @@ export function createSuggestSheet({ sheet, backdrop, body, closeBtn }, { onRequ
         <span class="sg-syl${s.fit ? ' fit' : ''}" title="${s.fit ? 'Dans le rythme des lignes voisines' : 'Longueur différente des lignes voisines'}">${s.syllables} syl.</span>
         ${s.rhymes ? '<span class="sg-rime" title="Rime avec la ligne précédente">rime ✓</span>' : ''}
         ${s.fromIdea ? '<span class="sg-idea" title="Inspirée de ta banque d\'idées">✦ ton idée</span>' : ''}
+        ${s.refName ? `<span class="sg-ref" title="Inspirée d'une de tes références">↗ ${escapeHTML(s.refName)}</span>` : ''}
       </span>`;
     body.innerHTML = `${head}
       ${result.fins.length ? `<h3>Finir la ligne</h3><div class="sg-list">${result.fins.map((f) => `<button class="sg-item" data-end="${escapeHTML(f.texte)}" type="button"><span class="sg-text">… ${escapeHTML(f.texte)}</span>${badge(f)}</button>`).join('')}</div>` : ''}

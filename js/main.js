@@ -32,6 +32,8 @@ import { createAnalysisView } from './ui/analysis.js';
 import { createAISettings } from './ui/aisettings.js';
 import { createSuggestSheet } from './ui/suggest.js';
 import { createAssistant } from './app/assistant.js';
+import { createReferencesView } from './ui/references.js';
+import { goalStatus } from './engine/project.js';
 import { hasKey } from './ai/client.js';
 
 const DEMO = `[Couplet 1]
@@ -67,6 +69,7 @@ const state = {
   analyses: store.loadAnalyses(),    // lectures IA gardées par texte
   profile: store.loadProfile(),      // profil d'écriture (IA)
   syntheses: store.loadSyntheses(),  // synthèses de projet (IA)
+  refs: store.loadRefs(),            // artistes, références et objectifs du projet final
 };
 
 // Corrections de prononciation : appliquées avant toute analyse
@@ -199,6 +202,7 @@ const overview = createOverview({
   onSelectAlbum: (v) => { state.album = v; refreshOverview(); assistant.renderSynthesis(); },
   onShowIdeas: (f) => { ideasView.setFilter(f); showIdeas(); },
   onWord: (w) => { setView('inspect'); analyseTabs.show('line'); understanding.editWord(w); },
+  onShowGoals: () => showGoals(),
   onSynthesize: () => assistant.runSynthesis(),
   onProfile: () => assistant.runProfile(),
   onOpenSettings: () => openSettings(),
@@ -230,6 +234,48 @@ const suggest = createSuggestSheet({
 $('#btnSuggest').addEventListener('click', () => assistant.openSuggest());
 
 const textsTabs = createSubtabs($('#textsView'));
+const ideasTabs = createSubtabs($('#ideasView'));
+
+/* ---------- Références, artistes, objectifs du projet ---------- */
+const referencesView = createReferencesView({
+  refForm: $('#refForm'), refsList: $('#refsList'), refsAI: $('#refsAI'),
+  goalForm: $('#goalForm'), goalsList: $('#goalsList'), goalsMeter: $('#goalsMeter'),
+}, {
+  onAdd: (kind, text, note) => {
+    state.refs.push(store.newRef(kind, text, note));
+    assistant.dropRefSuggestion(text);
+    saveRefs();
+  },
+  onRemove: (id) => { state.refs = state.refs.filter((r) => r.id !== id); saveRefs(); },
+  onToggleGoal: (id) => { const g = state.refs.find((r) => r.id === id); if (g) { g.done = !g.done; saveRefs(); } },
+  onNote: (id, note) => { const r = state.refs.find((x) => x.id === id); if (r) { r.note = note; saveRefs(); } },
+  onSuggest: () => assistant.runSuggestRefs(),
+  onOpenSettings: () => openSettings(),
+});
+
+function saveRefs() {
+  store.saveRefs(state.refs);
+  refreshRefs();
+}
+
+const statusOfGoal = (g) => goalStatus(g, { projects: state.projects, analyses: state.analyses, syntheses: state.syntheses });
+
+function refreshRefs() {
+  referencesView.update({
+    refs: state.refs,
+    statusOf: statusOfGoal,
+    aiState: assistant.refsAIState(),
+    suggestions: assistant.refSuggestions(),
+    error: assistant.refsError() ?? '',
+  });
+  refreshOverview();
+}
+
+function showGoals() {
+  if (isMobile()) setView('ideas');
+  else app.dataset.left = 'ideas';
+  ideasTabs.show('goals');
+}
 const analyseTabs = createSubtabs($('#inspector'), (tab) => { if (tab === 'text') assistant.maybeAutoAnalyze(); });
 
 function openSettings() {
@@ -241,6 +287,7 @@ const assistant = createAssistant({
   state, store, editor, current,
   views: { analysisView, suggest, overview, ideasView, understanding },
   refreshIdeas: () => refreshIdeas(),
+  refreshRefs: () => refreshRefs(),
   albumTexts: () => {
     const albums = new Set(state.projects.map((p) => p.album).filter(Boolean));
     const named = albums.has(state.album);
@@ -280,7 +327,8 @@ const refreshIdeas = debounce(() => {
 function refreshOverview() {
   const albums = [...new Set(state.projects.map((p) => p.album).filter(Boolean))].sort();
   const texts = albums.includes(state.album) ? state.projects.filter((p) => p.album === state.album) : state.projects;
-  overview.render({ albums, selected: state.album, report: albumReport(texts, state.ideas, state.usage, state.analyses) });
+  const goals = (state.refs ?? []).filter((r) => r.kind === 'objectif').map((g) => ({ text: g.text, statut: statusOfGoal(g).statut }));
+  overview.render({ albums, selected: state.album, report: albumReport(texts, state.ideas, state.usage, state.analyses), goals });
 }
 
 /** Mots que tu emploies et que le dictionnaire ne connaît pas (argot, jargon, mots inventés). */
@@ -308,7 +356,7 @@ const analyze = rafThrottle(() => {
   const { settings: s } = state;
   state.analysis = analyzeText(editor.getText(), { elision: s.elision, strict: s.strict, mode: s.mode });
   state.sections = markRepetitions(state.analysis.lines);
-  editor.render(state.analysis, { xray: s.xray, grid: s.grid, mode: s.mode });
+  editor.render(state.analysis, { xray: s.xray, grid: s.grid, mode: s.mode, cons: s.cons });
   updateInspector();
   refreshSummary();
 });
@@ -404,7 +452,7 @@ function exportCurrent() {
 }
 
 /* ====================== Réglages / toggles ====================== */
-const TOGGLES = { tglXray: 'xray', tglGrid: 'grid', tglStrict: 'strict' };
+const TOGGLES = { tglXray: 'xray', tglCons: 'cons', tglGrid: 'grid', tglStrict: 'strict' };
 
 function syncToggles() {
   for (const [id, key] of Object.entries(TOGGLES)) $(`#${id}`).setAttribute('aria-pressed', String(!!state.settings[key]));
@@ -483,6 +531,7 @@ $$('[data-left]').forEach((b) => b.addEventListener('click', () => { app.dataset
 function showIdeas() {
   if (isMobile()) setView('ideas');
   else app.dataset.left = 'ideas';
+  ideasTabs?.show('bank');
 }
 
 $('#btnPlMore').addEventListener('click', () => {
@@ -533,4 +582,5 @@ openProject(state.currentId);
 refreshTics.flush();
 refreshIdeas.flush();
 assistant.renderAll();
+refreshRefs();
 setStatus('Prêt');

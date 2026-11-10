@@ -2,7 +2,7 @@
  * - code (html/js/css) : réseau d'abord (toujours à jour en ligne), cache en secours
  * - dictionnaire et icônes : cache d'abord (gros fichiers qui ne changent presque jamais)
  * Incrémenter VERSION force le renouvellement du cache (surtout si data/lexique.json change). */
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE = `flow-matrix-${VERSION}`;
 
 const CORE = [
@@ -14,7 +14,7 @@ const CORE = [
   'js/engine/phonetics.js', 'js/engine/repetition.js', 'js/engine/rhymeDictionary.js', 'js/engine/rules.js',
   'js/engine/stopwords.js', 'js/engine/syllabify.js',
   'js/store/storage.js', 'js/ui/editor.js', 'js/ui/inspector.js', 'js/ui/player.js', 'js/ui/sidebar.js', 'js/ui/ideas.js', 'js/ui/overview.js', 'js/ui/understanding.js', 'js/ui/tabs.js',
-  'js/ui/analysis.js', 'js/ui/aisettings.js', 'js/ui/suggest.js', 'js/app/assistant.js',
+  'js/ui/analysis.js', 'js/ui/aisettings.js', 'js/ui/suggest.js', 'js/ui/references.js', 'js/app/assistant.js',
   'js/ai/client.js', 'js/ai/prompts.js', 'js/ai/features.js', 'vendor/anthropic-sdk.js',
   'js/utils/dom.js',
 ];

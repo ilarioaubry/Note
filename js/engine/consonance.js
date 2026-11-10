@@ -81,11 +81,15 @@ function poissonTail(k, lambda) {
 
 const MIN_COUNT = 3;
 const MAX_TAIL = 0.2;
+/* « Vraiment marqué » : affiché en plus des voyelles dans les modes Assonances et Rimes.
+   Soit 4 occurrences ou plus et très improbable par hasard, soit 3 et quasi impossible par hasard. */
+const STRONG = [{ min: 4, tail: 0.03 }, { min: 3, tail: 0.004 }];
 const FREQ_SUM = Object.values(FREQ).reduce((a, b) => a + b, 0);
 
 /**
  * @param {{line:{words:object[]}, group:number}[]} seq lignes de texte (hors titres et lignes vides)
- * Marque `occ.hl = true` sur chaque consonne retenue ; renseigne `line.cons` = [{ ph, count }] triés.
+ * Marque `occ.hl = true` sur chaque consonne retenue (et `occ.strong` si elle est vraiment marquée) ;
+ * renseigne `line.cons` = [{ ph, count, strong }] triés.
  * Prérequis : chaque mot porte `cons` = [{ s, e, ph, hl }].
  */
 export function detectConsonance(seq) {
@@ -107,16 +111,26 @@ export function detectConsonance(seq) {
       for (const ph of new Set(w.cons.map((o) => o.ph))) wordsWith.set(ph, (wordsWith.get(ph) ?? new Set()).add(w.lemma));
     }
     const kept = new Set();
+    const strong = new Set();
     for (const [ph, c] of counts) {
       if ((wordsWith.get(ph)?.size ?? 0) < MIN_COUNT) continue;
       const p = (FREQ[ph] ?? 1) / FREQ_SUM;
-      if (c >= MIN_COUNT && poissonTail(c, n * p) <= MAX_TAIL) kept.add(ph);
+      const tail = poissonTail(c, n * p);
+      if (c >= MIN_COUNT && tail <= MAX_TAIL) kept.add(ph);
+      if (STRONG.some((r) => c >= r.min && tail <= r.tail)) strong.add(ph);
     }
-    if (kept.size) for (const o of occ) if (kept.has(o.ph)) o.hl = true;
+    for (const o of occ) {
+      if (kept.has(o.ph)) o.hl = true;
+      if (strong.has(o.ph)) o.strong = true;
+    }
   }
   for (const { line } of seq) {
     const counts = new Map();
-    for (const w of line.words) for (const o of w.cons) if (o.hl) counts.set(o.ph, (counts.get(o.ph) ?? 0) + 1);
-    line.cons = [...counts].map(([ph, count]) => ({ ph, count })).sort((a, b) => b.count - a.count);
+    const strongPh = new Set();
+    for (const w of line.words) for (const o of w.cons) {
+      if (o.hl) counts.set(o.ph, (counts.get(o.ph) ?? 0) + 1);
+      if (o.strong) strongPh.add(o.ph);
+    }
+    line.cons = [...counts].map(([ph, count]) => ({ ph, count, strong: strongPh.has(ph) })).sort((a, b) => b.count - a.count);
   }
 }

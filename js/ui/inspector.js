@@ -63,7 +63,7 @@ export function createInspector(els, { onInsert }) {
       const last = l.words.at(-1);
       rhyme.innerHTML = last?.tonic ? `${vowelChip(last.tonic)} <span class="muted">${escapeHTML(toIPA(last.coda))}</span>` : '';
       cons.innerHTML = l.cons.length
-        ? l.cons.map((c) => `<span class="cchip" data-c="${FAMILY[c.ph] ?? 'k'}">${escapeHTML(consonantLabel(c.ph))} <b>×${c.count}</b></span>`).join('')
+        ? l.cons.map((c) => `<span class="cchip${c.strong ? ' strong' : ''}" data-c="${FAMILY[c.ph] ?? 'k'}" title="${c.strong ? 'Vraiment marqué : entouré dans le texte' : 'Revient plus que d\'habitude'}">${escapeHTML(consonantLabel(c.ph))} <b>×${c.count}</b>${c.strong ? ' ●' : ''}</span>`).join('')
         : '<span class="empty">Aucune dans cette ligne</span>';
       if (!userTyped && last) { rhymeInput.value = last.text.split("'").pop(); searchRhymes(); }
     }

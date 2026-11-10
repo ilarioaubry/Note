@@ -125,6 +125,10 @@ ne montrer qu'un sujet à la fois : Textes → Textes · Projet · Profil ; Anal
 
 ### Consonances et allitérations
 
+En modes **Assonances** et **Rimes**, les consonnes d'une allitération **vraiment marquée** sont entourées
+d'un contour fin, par-dessus la couleur des voyelles (réglage « + Consonnes marquées »). Le seuil est plus
+strict qu'en mode Consonnes : au moins 4 occurrences très improbables par hasard (ou 3 quasi impossibles).
+
 Le mode **Consonnes** (Analyse → Affichage → Rayon X) colore, dans ton texte tel que tu l'écris, les sons
 consonnes qui reviennent plus souvent que le hasard : le **p** de « personne, perf, presque, père », le **s**
 de « sonne, sans, presque ». La couleur regroupe les sons voisins (p/b rose, t/d orange, k/g jaune, f/v vert
@@ -173,6 +177,8 @@ dans **Analyse → Réglages** (elle reste sur l'appareil, dans `localStorage`).
 | **Profil d'écriture** | Textes → Profil | Portrait de ta voix (thèmes, mots, procédés, forces, angles morts), réinjecté dans toutes les demandes |
 | **Classement des idées** | Idées | Sens, thèmes et humeur de chaque idée importée |
 | **Synthèse de projet** | Textes → Projet | Ce que raconte le projet, redites, angles encore à écrire à partir de ta banque |
+| **Références et artistes** | Idées → Références | Tes influences (R1…) nourrissent les suggestions (images, allusions) ; l'IA repère les références culturelles dans tes textes et peut t'en proposer de nouvelles |
+| **À retrouver dans le projet** | Idées → À retrouver | Ta liste d'objectifs pour le projet final (O1…) : chaque objectif passe en « En cours » ou « Fait » quand un texte le réalise (lecture IA), ou se coche à la main ; bilan dans la synthèse de projet |
 
 Principes de conception :
 

@@ -14,11 +14,12 @@ const firstLine = (text, max = 60) => {
   return l.length > max ? `${l.slice(0, max)}…` : l;
 };
 
-export function createOverview({ select, body, synth, profile, jargon }, { onSelectAlbum, onShowIdeas, onWord, onSynthesize, onProfile, onOpenSettings }) {
+export function createOverview({ select, body, synth, profile, jargon }, { onSelectAlbum, onShowIdeas, onShowGoals, onWord, onSynthesize, onProfile, onOpenSettings }) {
   select.addEventListener('change', () => onSelectAlbum(select.value));
   body.addEventListener('click', (e) => {
     const b = e.target.closest('[data-ideas]');
     if (b) onShowIdeas(b.dataset.ideas);
+    if (e.target.closest('[data-goals]')) onShowGoals();
   });
   synth.addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]');
@@ -50,7 +51,7 @@ export function createOverview({ select, body, synth, profile, jargon }, { onSel
   /**
    * @param {{albums:string[], selected:string, report:object}} p
    */
-  function render({ albums, selected, report: r }) {
+  function render({ albums, selected, report: r, goals = [] }) {
     select.innerHTML = [`<option value="${ALL_ALBUMS}">Tous les textes</option>`]
       .concat(albums.map((a) => `<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`)).join('');
     select.value = albums.includes(selected) ? selected : ALL_ALBUMS;
@@ -72,6 +73,12 @@ export function createOverview({ select, body, synth, profile, jargon }, { onSel
           <button class="split-btn" data-ideas="free" type="button"><b>${r.free}</b><span>pas encore ${r.free > 1 ? 'dites' : 'dite'}</span></button>
         </div>
       </div>
+      ${goals.length ? `<div class="card">
+        <div class="card-head"><h3>À retrouver dans le projet</h3><button class="btn btn-sm" data-goals type="button">Voir</button></div>
+        <div class="meter" role="img" aria-label="${goals.filter((g) => g.statut === 'fait').length} sur ${goals.length}"><span style="width:${Math.round((goals.filter((g) => g.statut === 'fait').length / goals.length) * 100)}%"></span></div>
+        <ul class="goals compact">${goals.slice(0, 5).map((g) => `<li class="goal-mini ${g.statut}"><span class="dot"></span>${escapeHTML(g.text)}</li>`).join('')}</ul>
+        ${goals.length > 5 ? `<p class="hint">et ${goals.length - 5} autre${goals.length - 5 > 1 ? 's' : ''}…</p>` : ''}
+      </div>` : ''}
       <div class="card">
         <div class="card-head"><h3>Thèmes abordés</h3><span class="muted small">sons validés</span></div>
         ${bars(r.covered, (t) => t.songs.length, (t) => t.songs.join(', '))}
