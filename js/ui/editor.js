@@ -53,7 +53,6 @@ export function createEditor(root, { onInput, onCaret }) {
       const attrs = [];
       const cls = ['s'];
       if (opts.xray && sy.hl) attrs.push(`data-v="${sy.hl}"`);
-      if (opts.xray && sy.multi !== null) attrs.push(`data-m="${sy.multi % 6}"`);
       if (sy.rich) cls.push('rich');
       if (sy.endRhyme) cls.push('end');
       html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${escapeHTML(w.text.slice(sy.start, sy.end))}</span>`;
@@ -69,7 +68,7 @@ export function createEditor(root, { onInput, onCaret }) {
     let pos = 0;
     line.words.forEach((w, i) => {
       html += escapeHTML(line.text.slice(pos, w.start));
-      html += `<span class="w${w.rep ? ' rep' : ''}">${wordHTML(w, opts, beats?.get(i))}</span>`;
+      html += `<span class="w">${wordHTML(w, opts, beats?.get(i))}</span>`;
       pos = w.end;
     });
     html += escapeHTML(line.text.slice(pos));
@@ -92,7 +91,6 @@ export function createEditor(root, { onInput, onCaret }) {
   function render(analysis, opts) {
     const { lines } = analysis;
     backdrop.classList.toggle('xray', !!opts.xray);
-    backdrop.classList.toggle('reps-on', !!opts.reps);
 
     backdrop.innerHTML = lines.map((l, i) =>
       `<div class="ln${l.isMeta ? ' meta' : ''}${i === current ? ' current' : ''}">${lineHTML(l, opts)}</div>`).join('');

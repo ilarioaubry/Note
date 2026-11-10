@@ -19,32 +19,23 @@ import { createInspector } from './ui/inspector.js';
 import { createPlayer, isAudioFile } from './ui/player.js';
 
 const DEMO = `[Couplet 1]
-J'écris la nuit quand la ville s'endort
-Le stylo danse, j'ai du sang sur les accords
-J'suis pas d'ici, j'ai grandi dans le décor
-Les yeux rivés sur un ciel couleur d'or
+j'écris la nuit quand la ville s'endort
+le stylo danse, j'ai du sang sur les accords
+j'suis pas d'ici, j'ai grandi dans le décor
+les yeux rivés sur un ciel couleur d'or
 
-T'as vu le temps passer sans faire de bruit
-Moi j'ai tracé ma route au fond de la nuit
-Chaque mesure est un pas, chaque rime une pluie
-J'attends le jour, mais le jour me fuit
+t'as vu le temps passer sans faire de bruit
+moi j'ai tracé ma route au fond de la nuit
+chaque mesure est un pas, chaque rime une pluie
+j'attends le jour, mais le jour me fuit
 
 [Refrain]
-On garde la flamme, on garde le cap
-Même quand la vie nous frappe
-Maintenant j'avance, le cœur sous la cape
-Le monde peut tourner, rien ne m'attrape`;
+on garde la flamme, on garde le cap
+même quand la vie nous frappe
+y'a PerSonne qui m'arrête, Perf et PresqueSans Père
+le monde peut tourner, rien ne m'attrape`;
 
-const KEYS = ['', 'C', 'Cm', 'C#', 'C#m', 'D', 'Dm', 'Eb', 'Ebm', 'E', 'Em', 'F', 'Fm', 'F#', 'F#m',
-  'G', 'Gm', 'Ab', 'Abm', 'A', 'Am', 'Bb', 'Bbm', 'B', 'Bm'];
-const NOTE_FR = { C: 'Do', D: 'Ré', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Si' };
-const keyLabel = (k) => {
-  if (!k) return '—';
-  const minor = k.endsWith('m');
-  const root = minor ? k.slice(0, -1) : k;
-  const fr = NOTE_FR[root[0]] + (root[1] === '#' ? '♯' : root[1] === 'b' ? '♭' : '');
-  return `${k} · ${fr} ${minor ? 'min' : 'maj'}`;
-};
+// Une majuscule dans un mot est volontaire : elle met la syllabe en valeur (voir le texte d'aide dans Analyse).
 
 /* ====================== État ====================== */
 const state = {
@@ -78,7 +69,15 @@ const editor = createEditor($('#editor'), {
 
 const sidebar = createSidebar(
   { list: $('#projectList'), tics: $('#ticsList'), ticsScope: $('#ticsScope'), btnNew: $('#btnNew') },
-  { onSelect: (id) => { openProject(id); setView('write'); }, onNew: () => { openProject(createProject()); setView('write'); } },
+  {
+    onSelect: (id) => { openProject(id); setView('write'); },
+    onNew: () => { openProject(createProject()); setView('write'); },
+    onTitle: (v) => setProjectField('title', v.trim() || 'Sans titre'),
+    onBpm: (v) => { if (v >= 40 && v <= 240) setProjectField('bpm', v); else sidebar.syncEdit(current()); },
+    onKey: (v) => setProjectField('key', v),
+    onExport: () => exportCurrent(),
+    onDelete: () => deleteCurrent(),
+  },
 );
 
 const inspector = createInspector({
@@ -95,7 +94,7 @@ const player = createPlayer({
   barInfo: $('#barInfo'), btnDownbeat: $('#btnDownbeat'), btnMetro: $('#btnMetro'), btnClick: $('#btnClick'),
 }, {
   getBpm: () => current()?.bpm || 90,
-  setBpm: (bpm) => { setProjectField('bpm', Math.min(240, Math.max(40, bpm))); syncDocHead(); },
+  setBpm: (bpm) => { setProjectField('bpm', Math.min(240, Math.max(40, bpm))); sidebar.syncEdit(current()); },
   getOffset: () => current()?.offset || 0,
   setOffset: (t) => setProjectField('offset', t),
 });
@@ -105,7 +104,7 @@ const analyze = rafThrottle(() => {
   const { settings: s } = state;
   state.analysis = analyzeText(editor.getText(), { elision: s.elision, strict: s.strict, mode: s.mode });
   state.sections = markRepetitions(state.analysis.lines);
-  editor.render(state.analysis, { xray: s.xray, grid: s.grid, reps: s.reps });
+  editor.render(state.analysis, { xray: s.xray, grid: s.grid });
   updateInspector();
 });
 
@@ -162,7 +161,7 @@ function openProject(id) {
   state.currentId = id;
   const p = current();
   editor.setText(p.text);
-  syncDocHead();
+  sidebar.closeEdit();
   player.setBpmDisplay(p.bpm);
   inspector.resetRhymeInput();
   sidebar.renderProjects(state.projects, state.currentId);
@@ -171,24 +170,7 @@ function openProject(id) {
   if (!isMobile()) editor.focus();   // sur téléphone, ne pas ouvrir le clavier tout seul
 }
 
-const docTitle = $('#docTitle'), docBpm = $('#docBpm'), docKey = $('#docKey');
-docKey.innerHTML = KEYS.map((k) => `<option value="${k}">${keyLabel(k)}</option>`).join('');
-
-function syncDocHead() {
-  const p = current();
-  docTitle.value = p.title;
-  docBpm.value = p.bpm || '';
-  docKey.value = p.key || '';
-}
-
-docTitle.addEventListener('input', () => setProjectField('title', docTitle.value.trim() || 'Sans titre'));
-docBpm.addEventListener('change', () => {
-  const v = parseInt(docBpm.value, 10);
-  if (v >= 40 && v <= 240) setProjectField('bpm', v); else syncDocHead();
-});
-docKey.addEventListener('change', () => setProjectField('key', docKey.value));
-
-$('#btnDelete').addEventListener('click', () => {
+function deleteCurrent() {
   const p = current();
   if (!confirm(`Supprimer « ${p.title} » ? Cette action est définitive.`)) return;
   state.projects = state.projects.filter((x) => x.id !== p.id);
@@ -196,9 +178,9 @@ $('#btnDelete').addEventListener('click', () => {
   save.flush();
   refreshTics();
   openProject(state.projects.sort((a, b) => b.updatedAt - a.updatedAt)[0].id);
-});
+}
 
-$('#btnExport').addEventListener('click', () => {
+function exportCurrent() {
   const p = current();
   const header = `${p.title}${p.bpm ? ` — ${p.bpm} BPM` : ''}${p.key ? ` — ${p.key}` : ''}\n\n`;
   const blob = new Blob([header + p.text], { type: 'text/plain;charset=utf-8' });
@@ -208,10 +190,10 @@ $('#btnExport').addEventListener('click', () => {
   });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-});
+}
 
 /* ====================== Réglages / toggles ====================== */
-const TOGGLES = { tglXray: 'xray', tglGrid: 'grid', tglReps: 'reps', tglStrict: 'strict' };
+const TOGGLES = { tglXray: 'xray', tglGrid: 'grid', tglStrict: 'strict' };
 
 function syncToggles() {
   for (const [id, key] of Object.entries(TOGGLES)) $(`#${id}`).setAttribute('aria-pressed', String(!!state.settings[key]));
@@ -232,7 +214,7 @@ $$('#segMode button').forEach((b) => b.addEventListener('click', () => setSettin
 /* Légende des couleurs */
 $('#legend').innerHTML = ['a', 'e', 'E', 'i', 'o', 'u', 'y', 'eu', 'an', 'in', 'on', 'wa']
   .map((c) => `<span class="chip"><span class="dot" style="--vc: var(--v-${c})"></span>${CLASS_LABEL[c]}</span>`).join('')
-  + '<span class="chip muted">· surligné = assonance · encadré = rime de fin · vague = multi · pointillé rouge = répétition</span>';
+  + '<span class="chip muted">· surligné = assonance · encadré = rime de fin · Majuscule = syllabe mise en valeur</span>';
 
 /* ====================== Raccourcis clavier ====================== */
 window.addEventListener('keydown', (e) => {
@@ -275,8 +257,6 @@ function setView(view) {
   const ta = editor.textarea;
   if (app.dataset.view === 'write') savedScroll = { top: ta.scrollTop, left: ta.scrollLeft };
   app.dataset.view = view;
-  app.classList.remove('menu-open');
-  $('#btnMenu').setAttribute('aria-expanded', 'false');
   $$('#tabbar button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === view)));
   if (view === 'write') {
     ta.scrollTop = savedScroll.top;
@@ -288,10 +268,6 @@ function setView(view) {
 }
 $$('#tabbar button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
 
-$('#btnMenu').addEventListener('click', () => {
-  const open = app.classList.toggle('menu-open');
-  $('#btnMenu').setAttribute('aria-expanded', String(open));
-});
 $('#btnPlMore').addEventListener('click', () => {
   const open = $('#player').classList.toggle('open');
   $('#btnPlMore').setAttribute('aria-expanded', String(open));

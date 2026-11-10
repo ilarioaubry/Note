@@ -165,10 +165,21 @@ export function analyzeWord(token, opts = DEFAULT_OPTS) {
 
 const WORD_RE = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*['’]?/gu;
 
-/** Découpe une ligne en tokens avec positions. */
+/**
+ * Découpe une ligne en tokens avec positions.
+ * Une majuscule au milieu d'un mot est un choix d'écriture (« PerSonne », « PresqueSans ») :
+ * elle coupe le mot en deux, chaque morceau est analysé à part (Per + Sonne).
+ */
 export function tokenize(line) {
   const out = [];
-  for (const m of line.matchAll(WORD_RE)) out.push({ text: m[0], start: m.index, end: m.index + m[0].length });
+  for (const m of line.matchAll(WORD_RE)) {
+    let start = 0;
+    for (const c of m[0].matchAll(/(?<=\p{Ll})(?=\p{Lu})/gu)) {
+      out.push({ text: m[0].slice(start, c.index), start: m.index + start, end: m.index + c.index });
+      start = c.index;
+    }
+    out.push({ text: m[0].slice(start), start: m.index + start, end: m.index + m[0].length });
+  }
   return out;
 }
 

@@ -69,7 +69,7 @@ tel quel. L'inspecteur affiche la conversion en API (`/ʒsɥi/`).
 - *Rimes* : voyelle tonique + consonnes finales identiques (`accords` / `décor` / `d'or`).
 - *Rime de fin* : dernier mot qui rime avec un autre dernier mot (encadré).
 - *Multis* : séquences de 2 à 4 voyelles qui se répètent et finissent sur la tonique d'un mot plein
-  (soulignement en vague, une couleur par groupe).
+  (toutes les syllabes de la séquence sont colorées, en plus soutenu).
 - **Surlignage par syllabe** : le mot est découpé en syllabes écrites (`syllabify.js`) et seule la syllabe
   concernée est colorée (`écris` → seul `cris` ; rime riche = les deux dernières syllabes).
 - é et è sont fusionnés par défaut (toggle `é ≠ è` pour le mode strict).
@@ -87,20 +87,34 @@ Ajoute un test dans `tests/phonetics.test.js` à chaque correction pour ne pas r
 
 ## Interface
 
-- **Gauche** : textes sauvegardés (BPM + tonalité en tags), « + Nouveau », Radar à Tics (top 10 des mots
-  pleins sur tous les textes).
-- **Centre** : éditeur ; badge de syllabes par ligne (vert = ±1 par rapport à la médiane des lignes
-  précédentes du bloc, orange = ±2-3, rouge-orange au-delà). Toggles : Rayon X (Assonances / Rimes),
-  Grille 4/4 (repères de temps, snare en rose sur 2 et 4), Répétitions (pointillé rouge).
-  Les lignes `[Couplet]` / `# Refrain` sont des titres de section, non comptées.
-- **Droite** : signature vocalique de la ligne courante `[a - i - an - é]`, phonétique, mots répétés
-  dans la section (16 mesures max) avec badge `TIC` s'ils sont dans ton top, boîte à rimes
-  (clic = insertion au curseur), indexée sur une liste de base + tes propres textes.
-- **Bas** : import d'instru par glisser-déposer ou bouton (via `URL.createObjectURL`, rien n'est envoyé),
-  forme d'onde (clic = se placer, Maj+glisser = boucle), A / B / ⟲, boucles 4m / 8m calées sur le BPM,
-  `1↓` pour caler le temps 1, TAP tempo, métronome visuel + clic sonore.
+Trois zones (colonnes sur ordinateur, onglets **Textes · Écrire · Analyse** sur téléphone) :
 
-### Raccourcis
+- **Écrire** : le texte seul, plein écran. Retour à la ligne automatique, marge à gauche, badge de syllabes à
+  droite de chaque ligne (vert = ±1 par rapport à la médiane des lignes précédentes du bloc, orange = ±2-3,
+  rouge-orange au-delà). Les lignes `[Couplet]` / `# Refrain` sont des titres de section, non comptées.
+  Police système (San Francisco sur iPhone, comme l'app Notes). Aucun soulignement : la couleur est un fond
+  teinté sur la syllabe.
+- **Textes** : liste des textes ; le crayon ✎ de la carte sélectionnée ouvre titre, BPM, gamme, export et
+  suppression. Radar à Tics en dessous (top 10 des mots pleins sur tous les textes).
+- **Analyse** : réglages d'affichage (Rayon X, Assonances/Rimes, Grille 4/4, é ≠ è), signature vocalique de la
+  ligne courante `[a - i - an - é]`, phonétique, mots répétés dans la section (16 mesures max, badge `TIC`
+  s'ils sont dans ton top) et boîte à rimes (un clic insère le mot au curseur).
+- **Bas** : import d'instru par glisser-déposer ou bouton (via `URL.createObjectURL`, rien n'est envoyé),
+  forme d'onde (clic ou glisser = se placer, Maj+glisser = boucle), A / B / ⟲, boucles 4m / 8m calées sur le
+  BPM, `1↓` pour caler le temps 1, TAP tempo, métronome visuel + clic sonore.
+
+### Majuscules = syllabes mises en valeur
+
+Une majuscule est toujours un choix de l'auteur :
+
+- au milieu d'un mot, elle le coupe : `PerSonne` = `Per` + `Sonne`, `PresqueSans` = `Presque` + `Sans` ;
+- toute syllabe qui contient une majuscule est « mise en valeur » : elle est comparée à toutes les autres
+  syllabes mises en valeur et aux rimes des lignes voisines (même voyelle), au lieu de la seule syllabe
+  tonique du mot. Elle est colorée dès qu'elle trouve un écho.
+
+Donc écris en minuscules ce qui ne doit pas compter, et en majuscules ce que tu veux faire sonner.
+
+### Raccourcis (ordinateur)
 
 | Raccourci      | Action                |
 |----------------|-----------------------|
@@ -114,11 +128,9 @@ On peut aussi glisser un `.txt` sur la fenêtre pour l'importer comme nouveau te
 
 ## Sur téléphone
 
-L'interface est pensée mobile d'abord (≤ 900 px de large) : un écran à la fois, avec une barre
-d'onglets en bas **Textes · Écrire · Analyse**. Le bouton ⚙ ouvre les réglages avancés (répétitions,
-é ≠ è, export, suppression) ; le bouton ⋯ du lecteur ouvre A/B, 8 mesures, tap tempo et
+Un écran à la fois, barre d'onglets en bas. Le bouton ⋯ du lecteur ouvre A/B, 8 mesures, tap tempo et
 métronome. Quand le clavier s'ouvre, le lecteur et les onglets se masquent pour laisser la place au texte.
-Un `manifest.webmanifest` permet d'« Ajouter à l'écran d'accueil » (plein écran, icône dédiée).
+Le `manifest.webmanifest` permet d'« Ajouter à l'écran d'accueil » (plein écran, icône dédiée).
 
 ## Hors ligne
 

@@ -35,8 +35,11 @@ function analyzeLine(text, index, opts) {
         lemma,
         isStop: isStopword(lemma) || lemma.length < 2,
         sylStart: syl,
-        // une entrée par syllabe prononcée : { start, end (dans le mot), cls, hl, rich, endRhyme, multi }
-        syls: syllabify(tok.text, opts).map((x) => ({ ...x, hl: null, rich: false, endRhyme: false, multi: null })),
+        // une entrée par syllabe prononcée : { start, end (dans le mot), cls, emph, hl, rich, endRhyme, multi }
+        // emph : la syllabe contient une majuscule = syllabe mise en valeur volontairement par l'auteur
+        syls: syllabify(tok.text, opts).map((x) => ({
+          ...x, emph: /\p{Lu}/u.test(tok.text.slice(x.start, x.end)), hl: null, rich: false, endRhyme: false, multi: null,
+        })),
         rep: false,
       });
       syl += a.syllables;
@@ -95,25 +98,49 @@ function markTonic(w, rich, strict) {
   }
 }
 
+/**
+ * Syllabes candidates d'une ligne :
+ *  - si un mot contient des majuscules, ce sont SES syllabes en majuscule (choix explicite de l'auteur) ;
+ *  - sinon la syllabe tonique des mots pleins et du dernier mot de la ligne.
+ */
+function candidatesOf(line, o) {
+  const out = [];
+  const last = line.words.at(-1);
+  for (const w of line.words) {
+    const n = w.syls.length;
+    if (!n) continue;
+    const marked = w.syls.filter((x) => x.emph && x.cls !== 'schwa');
+    if (marked.length) {
+      for (const sy of marked) out.push({ w, sy, manual: true, cls: matchClass(sy.cls, o.strict) });
+    } else if (!w.isStop || w === last) {
+      const id = rhymeId(w, o);
+      if (id) out.push({ w, sy: w.syls[n - 1], manual: false, id, cls: matchClass(w.syls[n - 1].cls, o.strict) });
+    }
+  }
+  return out;
+}
+
+/** Une syllabe mise en valeur se compare toujours par sa voyelle ; sinon selon le mode (assonance / rime). */
+const candMatch = (c, d) => (c.manual || d.manual ? c.cls === d.cls : c.id === d.id);
+
 function detectRhymes(seq, o) {
-  // Candidats : mots pleins + dernier mot de chaque ligne
-  const cands = seq.map(({ line }) => line.words.filter((w, i) => !w.isStop || i === line.words.length - 1));
+  const cands = seq.map(({ line }) => candidatesOf(line, o));
 
   for (let a = 0; a < seq.length; a++) {
-    for (const w of cands[a]) {
-      const id = rhymeId(w, o);
-      if (!id) continue;
+    for (const c of cands[a]) {
       let hit = false, rich = false;
       for (let b = Math.max(0, a - WINDOW); b <= Math.min(seq.length - 1, a + WINDOW); b++) {
         if (seq[b].group !== seq[a].group) continue;
-        for (const v of cands[b]) {
-          if (v === w || rhymeId(v, o) !== id) continue;
-          if (v.lemma === w.lemma) continue;                      // même mot = répétition, pas rime
+        for (const d of cands[b]) {
+          if (d.sy === c.sy || !candMatch(c, d)) continue;
+          if (d.w !== c.w && d.w.lemma === c.w.lemma) continue;   // même mot = répétition, pas rime
           hit = true;
-          if (w.rhymeKey === v.rhymeKey && sameTail(w, v, o.strict)) rich = true;   // rime riche : 2 dernières voyelles
+          if (!c.manual && !d.manual && c.w.rhymeKey === d.w.rhymeKey && sameTail(c.w, d.w, o.strict)) rich = true;
         }
       }
-      if (hit) markTonic(w, rich, o.strict);
+      if (!hit) continue;
+      if (c.manual) c.sy.hl = c.cls;
+      else markTonic(c.w, rich, o.strict);
     }
   }
 
@@ -173,7 +200,10 @@ function detectMultis(seq, o) {
         for (let k = x.start; k <= x.end; k++) {
           claimed[x.li][k] = true;
           const sy = syls[x.li][k].syl;
-          if (sy && sy.multi === null) sy.multi = gid;
+          if (!sy) continue;
+          if (sy.multi === null) sy.multi = gid;
+          if (!sy.hl) sy.hl = syls[x.li][k].cls;                 // chaque syllabe du multi prend la couleur de sa voyelle
+          sy.rich = true;
         }
       }
     }

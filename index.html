@@ -21,23 +21,7 @@
   <!-- ============ Barre supérieure ============ -->
   <header class="topbar">
     <div class="brand"><span class="brand-mark">▦</span> Flow <span class="amp">&amp;</span> Rimes <b>Matrix</b></div>
-    <div class="toolbar" id="toolbarMain" role="toolbar" aria-label="Affichage">
-      <button class="tgl" id="tglXray" aria-pressed="true" title="Surlignage des assonances et rimes">Rayon X</button>
-      <div class="seg" id="segMode" role="group" aria-label="Densité du Rayon X">
-        <button data-mode="assonances" aria-pressed="true" title="Toutes les voyelles toniques qui se répondent">Assonances</button>
-        <button data-mode="rimes" aria-pressed="false" title="Voyelle tonique + consonnes finales identiques">Rimes</button>
-      </div>
-      <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
-    </div>
-    <button class="btn btn-menu" id="btnMenu" aria-expanded="false" aria-label="Réglages">⚙</button>
-    <div class="toolbar toolbar-more" id="toolbarMore">
-      <button class="tgl" id="tglReps" aria-pressed="true" title="Souligner les mots répétés dans la même section">Répétitions</button>
-      <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
-      <span class="sep"></span>
-      <button class="btn" id="btnExport" title="Exporter en .txt">Exporter</button>
-      <button class="btn btn-danger" id="btnDelete" title="Supprimer ce texte">Supprimer</button>
-      <div class="save-status" id="saveStatus">—</div>
-    </div>
+    <div class="save-status" id="saveStatus">—</div>
   </header>
 
   <!-- ============ Colonne gauche : projets ============ -->
@@ -60,12 +44,6 @@
 
   <!-- ============ Colonne centrale : éditeur ============ -->
   <main class="col col-center">
-    <div class="doc-head">
-      <input class="doc-title" id="docTitle" type="text" placeholder="Titre du morceau" spellcheck="false" aria-label="Titre">
-      <label class="field"><span>BPM</span><input id="docBpm" type="number" min="40" max="240" step="1"></label>
-      <label class="field"><span>Ton.</span><select id="docKey"></select></label>
-    </div>
-
     <div class="editor" id="editor">
       <div class="ed-gutter" aria-hidden="true"><div class="ed-gutter-inner"></div></div>
       <div class="ed-main">
@@ -81,6 +59,20 @@
 
   <!-- ============ Colonne droite : inspecteur ============ -->
   <aside class="col col-right" id="inspector">
+    <div class="panel">
+      <div class="panel-head"><h2>Affichage</h2></div>
+      <div class="display-opts">
+        <button class="tgl" id="tglXray" aria-pressed="true" title="Surlignage des assonances et rimes">Rayon X</button>
+        <div class="seg" id="segMode" role="group" aria-label="Densité du Rayon X">
+          <button data-mode="assonances" aria-pressed="true" title="Toutes les voyelles toniques qui se répondent">Assonances</button>
+          <button data-mode="rimes" aria-pressed="false" title="Voyelle tonique + consonnes finales identiques">Rimes</button>
+        </div>
+        <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
+        <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
+      </div>
+      <p class="muted small hint">Une majuscule dans un mot (« PerSonne ») met la syllabe en valeur : elle est comparée aux autres syllabes en majuscule et aux rimes proches.</p>
+    </div>
+
     <div class="panel">
       <div class="panel-head"><h2>Inspecteur</h2><span class="muted small" id="insLineNo"></span></div>
       <div class="ins-line" id="insLine">—</div>

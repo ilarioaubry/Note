@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeWord, countSyllables } from '../js/engine/phonetics.js';
+import { analyzeWord, countSyllables, tokenize } from '../js/engine/phonetics.js';
 import { analyzeText } from '../js/engine/analyzer.js';
 import { topTics } from '../js/engine/repetition.js';
 import { findRhymes } from '../js/engine/rhymeDictionary.js';
@@ -89,4 +89,18 @@ test('radar à tics ignore les mots outils', () => {
 test('boîte à rimes', () => {
   const r = findRhymes('nuit');
   assert.ok(r.rimes.includes('bruit') || r.riches.includes('bruit'));
+});
+
+test('majuscules volontaires : coupent le mot et mettent la syllabe en valeur', () => {
+  assert.deepEqual(tokenize('PerSonne PresqueSans').map((t) => t.text), ['Per', 'Sonne', 'Presque', 'Sans']);
+  assert.equal(countSyllables('PerSonne'), 2);
+  const r = analyzeText('PerSonne Perf\nPresqueSans Père', { mode: 'assonances' });
+  const sylOf = (li, txt) => r.lines[li].words.find((w) => w.text === txt).syls[0];
+  for (const [li, w] of [[0, 'Per'], [0, 'Perf'], [1, 'Presque'], [1, 'Père']]) {
+    assert.ok(sylOf(li, w).emph, `${w} est mis en valeur`);
+    assert.ok(sylOf(li, w).hl, `${w} rime avec les autres syllabes en majuscule`);
+  }
+  // sans majuscule, ces mots ne sont plus appariés de la même façon : l'emphase vient bien des majuscules
+  const plain = analyzeText('personne perf\npresquesans père', { mode: 'assonances' });
+  assert.ok(!plain.lines[0].words[0].syls[0].emph);
 });
