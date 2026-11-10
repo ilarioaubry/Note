@@ -10,6 +10,7 @@ import { beatMarkers } from '../engine/analyzer.js';
 import { FAMILY } from '../engine/consonance.js';
 
 export function createEditor(root, { onInput, onCaret }) {
+  const scroller = root;                       // .editor : SEUL élément qui défile (textarea, calque, gouttière et badges bougent ensemble, sans JS)
   const ta = root.querySelector('.ed-input');
   const backdrop = root.querySelector('.ed-backdrop-inner');
   const gutter = root.querySelector('.ed-gutter-inner');
@@ -19,12 +20,6 @@ export function createEditor(root, { onInput, onCaret }) {
   let lineEls = [];
   let gutterEls = [];
   let badgeEls = [];
-
-  const syncScroll = () => {
-    backdrop.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`;
-    gutter.style.transform = `translateY(${-ta.scrollTop}px)`;
-    badges.style.transform = `translateY(${-ta.scrollTop}px)`;
-  };
 
   const caretLine = () => ta.value.slice(0, ta.selectionStart).split('\n').length - 1;
 
@@ -39,8 +34,21 @@ export function createEditor(root, { onInput, onCaret }) {
     onCaret?.(current);
   };
 
-  ta.addEventListener('input', () => { onInput?.(ta.value); updateCaret(); });
-  ta.addEventListener('scroll', syncScroll, { passive: true });
+  /**
+   * Le textarea ne défile plus (il a la hauteur de tout son contenu) : on garde la ligne du curseur visible
+   * en faisant défiler le conteneur, au cas où le navigateur ne le ferait pas lui-même.
+   */
+  function revealCaret() {
+    const el = lineEls[current];
+    if (!el) return;
+    const margin = 48;
+    const top = el.offsetTop, bottom = top + el.offsetHeight;
+    const view = scroller.clientHeight;
+    if (bottom > scroller.scrollTop + view - margin) scroller.scrollTop = bottom - view + margin;
+    else if (top < scroller.scrollTop + margin) scroller.scrollTop = Math.max(0, top - margin);
+  }
+
+  ta.addEventListener('input', () => { onInput?.(ta.value); updateCaret(); revealCaret(); });
   for (const ev of ['keyup', 'click', 'focus', 'select']) ta.addEventListener(ev, updateCaret);
   document.addEventListener('selectionchange', () => { if (document.activeElement === ta) updateCaret(); });
 
@@ -128,7 +136,6 @@ export function createEditor(root, { onInput, onCaret }) {
     gutterEls = [...gutter.children];
     badgeEls = [...badges.children];
     matchHeights();
-    syncScroll();
   }
 
   /** Insère du texte au curseur en conservant l'historique d'annulation si possible. */
@@ -143,7 +150,7 @@ export function createEditor(root, { onInput, onCaret }) {
 
   function setText(text) {
     ta.value = text;
-    ta.scrollTop = 0;
+    scroller.scrollTop = 0;
     ta.setSelectionRange(0, 0);
     current = -1;
     updateCaret();
@@ -155,6 +162,7 @@ export function createEditor(root, { onInput, onCaret }) {
     setText,
     render,
     insertAtCursor,
+    scroller,
     currentLine: () => (current < 0 ? 0 : current),
     focus: () => ta.focus(),
   };

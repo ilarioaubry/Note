@@ -174,12 +174,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- Éditeur Matrix ---------- */
 .editor {
-  flex: 1; min-height: 0; display: grid; grid-template-columns: 44px minmax(0, 1fr) 64px; position: relative;
+  flex: 1; min-height: 0; position: relative;
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
 }
-.ed-gutter, .ed-badges { overflow: hidden; position: relative; background: var(--bg); }
+/* Tout est dans un seul conteneur qui défile : le surlignage et les badges suivent le texte nativement */
+.ed-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 64px; min-height: 100%; }
+.ed-gutter, .ed-badges { position: relative; background: var(--bg); }
 .ed-gutter { border-right: 1px solid var(--line); }
 .ed-badges { border-left: 1px solid var(--line); }
-.ed-gutter-inner, .ed-badges-inner { padding: var(--ed-pad) 0 50vh; will-change: transform; }
+.ed-gutter-inner, .ed-badges-inner { padding: var(--ed-pad) 0 50vh; }
 .ed-gutter-inner div, .ed-badges-inner div {
   height: var(--ed-line); line-height: var(--ed-line); font-family: var(--font-mono); font-size: 11px;
 }
@@ -195,9 +198,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .badge.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
 .badge.off { color: var(--off); border-color: color-mix(in srgb, var(--off) 60%, transparent); background: color-mix(in srgb, var(--off) 10%, var(--bg-2)); }
 
-.ed-main { position: relative; min-width: 0; overflow: hidden; }
-.ed-backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.ed-backdrop-inner { will-change: transform; padding: var(--ed-pad) var(--ed-pad) 50vh var(--ed-padl); }
+.ed-main { position: relative; min-width: 0; }
+.ed-backdrop { pointer-events: none; }
+.ed-backdrop-inner { padding: var(--ed-pad) var(--ed-pad) 50vh var(--ed-padl); }
 
 /* Typo strictement identique textarea / calque */
 .ed-input, .ed-backdrop-inner {
@@ -207,9 +210,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-input {
   position: absolute; inset: 0; width: 100%; height: 100%; resize: none; border: 0; outline: none; margin: 0;
   padding: var(--ed-pad) var(--ed-pad) 50vh var(--ed-padl); background: transparent; color: var(--text); caret-color: var(--accent);
-  overflow-x: hidden; overflow-y: auto; scrollbar-width: none;      /* pas de scrollbar : elle changerait la largeur et donc les retours à la ligne */
+  overflow: hidden;      /* le textarea a la hauteur de son contenu et ne défile pas : c'est .editor qui défile */
 }
-.ed-input::-webkit-scrollbar { display: none; }
 .ed-input::placeholder { color: var(--text-faint); }
 .ed-input::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
@@ -338,7 +340,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .topbar { display: none; }
 
   /* Écrire */
-  .editor { grid-template-columns: minmax(0, 1fr) 38px; }
+  .ed-row { grid-template-columns: minmax(0, 1fr) 38px; }
   .ed-gutter, .legend { display: none; }
   .badge { min-width: 28px; line-height: 20px; font-size: 12px; }
 

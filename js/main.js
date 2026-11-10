@@ -250,17 +250,15 @@ window.addEventListener('drop', async (e) => {
 /* ====================== Mobile : onglets, réglages, clavier ====================== */
 const app = $('#app');
 const isMobile = () => matchMedia('(max-width: 900px)').matches;
-let savedScroll = { top: 0, left: 0 };
+let savedScroll = 0;
 
 function setView(view) {
   const ta = editor.textarea;
-  if (app.dataset.view === 'write') savedScroll = { top: ta.scrollTop, left: ta.scrollLeft };
+  if (app.dataset.view === 'write') savedScroll = editor.scroller.scrollTop;
   app.dataset.view = view;
   $$('#tabbar button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === view)));
   if (view === 'write') {
-    ta.scrollTop = savedScroll.top;
-    ta.scrollLeft = savedScroll.left;
-    ta.dispatchEvent(new Event('scroll'));
+    editor.scroller.scrollTop = savedScroll;
   } else {
     ta.blur();
   }
