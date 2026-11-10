@@ -148,6 +148,36 @@ export function createEditor(root, { onInput, onCaret }) {
     }
   }
 
+  /** Index du début de la ligne n dans le texte. */
+  const lineStart = (n) => {
+    let pos = 0;
+    for (let i = 0; i < n; i++) {
+      const nl = ta.value.indexOf('\n', pos);
+      if (nl < 0) return ta.value.length;
+      pos = nl + 1;
+    }
+    return pos;
+  };
+
+  /** Ajoute une ligne juste sous la ligne du curseur. */
+  function insertLineBelow(str) {
+    const start = lineStart(caretLine());
+    const nl = ta.value.indexOf('\n', start);
+    const end = nl < 0 ? ta.value.length : nl;
+    ta.focus();
+    ta.setSelectionRange(end, end);
+    insertAtCursor(`\n${str}`);
+  }
+
+  /** Place le curseur au début d'une ligne et la fait défiler à l'écran, sans ouvrir le clavier. */
+  function gotoLine(n) {
+    const pos = lineStart(n);
+    ta.setSelectionRange(pos, pos);
+    updateCaret();
+    const el = lineEls[n];
+    if (el) scroller.scrollTop = Math.max(0, el.offsetTop - scroller.clientHeight / 3);
+  }
+
   function setText(text) {
     ta.value = text;
     scroller.scrollTop = 0;
@@ -162,6 +192,8 @@ export function createEditor(root, { onInput, onCaret }) {
     setText,
     render,
     insertAtCursor,
+    insertLineBelow,
+    gotoLine,
     scroller,
     currentLine: () => (current < 0 ? 0 : current),
     focus: () => ta.focus(),

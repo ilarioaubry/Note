@@ -15,7 +15,7 @@ export const keyLabel = (k) => {
   return `${k} · ${fr} ${minor ? 'min' : 'maj'}`;
 };
 
-export function createSidebar({ list, tics, ticsScope, btnNew }, { onSelect, onNew, onTitle, onBpm, onKey, onExport, onDelete }) {
+export function createSidebar({ list, tics, ticsScope, btnNew }, { onSelect, onNew, onTitle, onBpm, onKey, onAlbum, onStatus, onExport, onDelete }) {
   let editing = false;
   let lastProjects = [];
   let lastId = null;
@@ -30,11 +30,29 @@ export function createSidebar({ list, tics, ticsScope, btnNew }, { onSelect, onN
       <label class="field grow"><span>Gamme</span><select id="docKey">${KEYS.map((k) => `<option value="${k}">${escapeHTML(keyLabel(k))}</option>`).join('')}</select></label>
     </div>
     <div class="edit-row">
+      <label class="field grow"><span>Projet</span><input id="docAlbum" type="text" list="albumNames" placeholder="album, mixtape…" spellcheck="false" autocomplete="off"></label>
+      <datalist id="albumNames"></datalist>
+    </div>
+    <div class="edit-row">
+      <div class="field grow"><span>Statut</span>
+        <div class="seg status-seg" role="group" aria-label="Statut du texte">
+          <button type="button" data-status="brouillon">Brouillon</button>
+          <button type="button" data-status="valide">Validé ✓</button>
+        </div>
+      </div>
+    </div>
+    <div class="edit-row">
       <button class="btn" id="btnExport" type="button">Exporter .txt</button>
       <button class="btn btn-danger" id="btnDelete" type="button">Supprimer</button>
     </div>`;
   const $in = (sel) => panel.querySelector(sel);
-  const inTitle = $in('#docTitle'), inBpm = $in('#docBpm'), inKey = $in('#docKey');
+  const inTitle = $in('#docTitle'), inBpm = $in('#docBpm'), inKey = $in('#docKey'), inAlbum = $in('#docAlbum');
+  const albumNames = $in('#albumNames');
+  inAlbum.addEventListener('input', () => onAlbum(inAlbum.value.trim()));
+  panel.querySelector('.status-seg').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-status]');
+    if (b) onStatus(b.dataset.status);
+  });
 
   inTitle.addEventListener('input', () => onTitle(inTitle.value));
   // BPM : pris en compte dès que la valeur est valide (40–240) ; à la sortie du champ, une valeur invalide est remise à jour
@@ -66,6 +84,10 @@ export function createSidebar({ list, tics, ticsScope, btnNew }, { onSelect, onN
     if (document.activeElement !== inTitle) inTitle.value = p.title === 'Sans titre' ? '' : p.title;
     if (document.activeElement !== inBpm) inBpm.value = p.bpm || '';
     inKey.value = p.key || '';
+    if (document.activeElement !== inAlbum) inAlbum.value = p.album || '';
+    const albums = [...new Set(lastProjects.map((x) => x.album).filter(Boolean))].sort();
+    albumNames.innerHTML = albums.map((a) => `<option value="${escapeHTML(a)}"></option>`).join('');
+    panel.querySelectorAll('[data-status]').forEach((b) => b.setAttribute('aria-pressed', String((p.status || 'brouillon') === b.dataset.status)));
   }
 
   const cardHTML = (p, active) => {
@@ -76,6 +98,8 @@ export function createSidebar({ list, tics, ticsScope, btnNew }, { onSelect, onN
       <span class="p-meta">
         ${p.bpm ? `<span class="tag bpm">${p.bpm} BPM</span>` : ''}
         ${p.key ? `<span class="tag key">${escapeHTML(p.key)}</span>` : ''}
+        ${p.status === 'valide' ? '<span class="tag ok">✓ validé</span>' : ''}
+        ${p.album ? `<span class="tag album">${escapeHTML(p.album)}</span>` : ''}
         <span class="tag">${lines} l.</span>
         <span class="muted small">${date}</span>
       </span>`;

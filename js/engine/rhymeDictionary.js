@@ -42,21 +42,31 @@ const BASE_WORDS = `
 
 const index = new Map();       // mot → analyse
 const synonyms = new Map();    // mot → [synonymes]
+const mine = new Set();        // mots que TU utilises (proposés en premier)
 
-function add(word) {
+function add(word, force = false) {
   const w = word.toLowerCase();
-  if (index.has(w) || w.length < 2 || /\d/.test(w)) return;
+  if ((index.has(w) && !force) || w.length < 2 || /\d/.test(w)) return;
   const a = analyzeWord(w);
   if (!a.tonic || a.tonic === 'schwa') return;
   index.set(w, a);
 }
 
-BASE_WORDS.forEach(add);
+BASE_WORDS.forEach((w) => add(w));
 
-/** Ajoute les mots (ex. issus des textes de l'utilisateur) à l'index. */
+/** Ajoute les mots de tes textes et de ta banque d'idées : ils passent en tête des suggestions. */
 export function registerWords(words) {
-  for (const w of words) if (!w.includes("'")) add(w);
+  for (const w of words) {
+    if (w.includes("'") || w.length < 3) continue;
+    add(w);
+    if (index.has(w.toLowerCase())) mine.add(w.toLowerCase());
+  }
 }
+
+/** Ré-analyse un mot (après une correction de prononciation). */
+export function reindexWord(word) { add(word, true); }
+
+export const isMine = (w) => mine.has(w);
 
 /**
  * Ré-indexe les mots les plus fréquents du dictionnaire chargé (Lexique3 est trié par fréquence).
@@ -100,6 +110,9 @@ export function findRhymes(word, { limit = 24, strict = false } = {}) {
     else if (sameKey) res.rimes.push(w);
     else if (matchClass(a.tonic, strict) === matchClass(target.tonic, strict)) res.assonances.push(w);
   }
-  for (const k of ['riches', 'rimes', 'assonances']) res[k] = res[k].slice(0, limit);   // ordre d'insertion = fréquence
+  // Tes mots d'abord, puis l'ordre d'insertion (= fréquence dans Lexique 3)
+  for (const k of ['riches', 'rimes', 'assonances']) {
+    res[k] = [...res[k].filter((w) => mine.has(w)), ...res[k].filter((w) => !mine.has(w))].slice(0, limit);
+  }
   return res;
 }

@@ -28,6 +28,10 @@ js/
 │   ├── lexicon.js         Dictionnaire (argot, anglicismes) + loadLexique() pour Lexique3
 │   ├── syllabify.js       Découpe le mot écrit en syllabes (surlignage par syllabe)
 │   ├── consonance.js      Allitérations / consonances (sons consonnes qui reviennent)
+│   ├── themes.js          Thèmes, humeur, mots-clés (lexiques, sans IA)
+│   ├── figures.js         Figures de style repérées par règles
+│   ├── ideas.js           Banque d'idées : découpage de note, « ça sonne avec », idée dite ou non
+│   ├── project.js         Vue projet : thèmes abordés, idées pas encore dites
 │   ├── numbers.js         16 → « seize »
 │   ├── stopwords.js       Mots outils
 │   ├── analyzer.js        Texte → lignes → mots ; rimes, multis, régularité, grille 4/4
@@ -37,6 +41,9 @@ js/
 │   ├── editor.js          Textarea + calque synchronisé (surlignage, badges, grille)
 │   ├── sidebar.js         Projets + Radar à Tics
 │   ├── inspector.js       Signature vocalique, répétitions locales, boîte à rimes
+│   ├── understanding.js   Analyse : prononciation perso, « ça sonne avec », « Ce texte »
+│   ├── ideas.js           Onglet Idées (banque d'idées)
+│   ├── overview.js        Panneau Projet + « Ton vocabulaire »
 │   └── player.js          Audio local, forme d'onde, A/B, 4/8 mesures, tap tempo, métronome
 ├── store/storage.js       localStorage (projets, réglages)
 └── utils/dom.js           debounce, rafThrottle, escape…
@@ -88,7 +95,8 @@ Ajoute un test dans `tests/phonetics.test.js` à chaque correction pour ne pas r
 
 ## Interface
 
-Trois zones (colonnes sur ordinateur, onglets **Textes · Écrire · Analyse** sur téléphone) :
+Quatre zones (colonnes sur ordinateur, onglets **Textes · Écrire · Analyse · Idées** sur téléphone ;
+sur ordinateur, le bouton « Idées ✦ » bascule la colonne de gauche) :
 
 - **Écrire** : le texte seul, plein écran. Retour à la ligne automatique, marge à gauche, badge de syllabes à
   droite de chaque ligne (vert = ±1 par rapport à la médiane des lignes précédentes du bloc, orange = ±2-3,
@@ -140,6 +148,33 @@ On peut aussi glisser un `.txt` sur la fenêtre pour l'importer comme nouveau te
 Un écran à la fois, barre d'onglets en bas. Le bouton ⋯ du lecteur ouvre A/B, 8 mesures, tap tempo et
 métronome. Quand le clavier s'ouvre, le lecteur et les onglets se masquent pour laisser la place au texte.
 Le `manifest.webmanifest` permet d'« Ajouter à l'écran d'accueil » (plein écran, icône dédiée).
+
+## Mémoire d'écriture et compréhension (100 % local, sans IA)
+
+Rien n'est envoyé nulle part : tout est calculé sur le téléphone, hors ligne.
+
+- **Banque d'idées** (onglet Idées) : colle ta note d'idées, elle est découpée en fragments (une ligne
+  vide, une ligne de tirets `---` ou une date seule sépare deux idées). Recherche, filtre par thème,
+  « pas encore dites / déjà dites », insertion dans le texte en un geste.
+- **Ça sonne avec…** (Analyse) : les lignes de ta banque qui riment avec la ligne en cours (rime riche,
+  rime, assonance), pour ressortir un vieux bout de texte au bon moment.
+- **Ce texte** (Analyse) : thèmes dominants, humeur, mots forts (ce qui distingue ce texte de tes autres),
+  figures de style repérées avec la ligne (anaphore, épiphore, parallélisme, comparaison, métaphore
+  probable, antithèse, paronomase, allitération, assonance, épizeuxe, question rhétorique), et les idées
+  de ta banque présentes dans le texte.
+- **Statut et projet** (crayon ✎ du texte) : Brouillon / Validé et nom du projet (album, mixtape…).
+  Une idée devient « dite » quand elle apparaît dans un texte **validé** (une de ses lignes telle quelle,
+  ou la moitié de ses mots pleins).
+- **Projet** (onglet Textes) : sons validés, thèmes abordés, et les thèmes présents dans tes idées mais
+  encore absents de tes sons validés.
+- **Ton vocabulaire** : les mots que tu emploies et que le dictionnaire ne connaît pas. Touche un mot (ici
+  ou dans « Mots de la ligne ») pour indiquer comment il se dit, en l'écrivant comme il se prononce
+  (« zbeul » → « zebeul ») : la correction est retenue partout, et réversible.
+- **Boîte à rimes** : tes propres mots sont proposés en premier.
+- **Accents oubliés** : « j'ecoute », « deja », « tete » sont lus comme « j'écoute », « déjà », « tête ».
+
+Limites : thèmes et humeur viennent de lexiques (`themes.js`) — l'analyse voit ce qui est dit
+explicitement, pas le second degré ni les images inédites. Les lexiques sont faits pour être enrichis.
 
 ## Hors ligne
 

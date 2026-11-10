@@ -69,9 +69,25 @@ function indexUnaccented(word) {
 }
 for (const w of dictionary.keys()) indexUnaccented(w);
 
+/**
+ * Dictionnaire perso : tes corrections de prononciation. Prioritaire sur tout le reste
+ * (Lexique 3 et exceptions maison), et réversible (on retire la correction, l'original revient).
+ */
+const userEntries = new Map();
+
+export function setUserEntry(word, phon) { userEntries.set(word.toLowerCase(), phon); }
+export function removeUserEntry(word) { userEntries.delete(word.toLowerCase()); }
+export function userEntryOf(word) { return userEntries.get(word.toLowerCase()); }
+export function userEntriesObject() { return Object.fromEntries(userEntries); }
+
 /** Retourne la transcription d'un mot (notation Lexique) ou undefined. */
 export function lookup(word) {
-  return dictionary.get(word);
+  return userEntries.get(word) ?? dictionary.get(word);
+}
+
+/** Le mot est-il connu (dictionnaire, exceptions, corrections perso), avec ou sans accents ? */
+export function isKnownWord(word) {
+  return userEntries.has(word) || dictionary.has(word) || unaccented.has(word);
 }
 
 /**
@@ -79,13 +95,13 @@ export function lookup(word) {
  * (ecoute → écoute). undefined si le mot est inconnu dans les deux cas.
  */
 export function canonicalForm(word) {
-  if (dictionary.has(word)) return word;
+  if (dictionary.has(word) || userEntries.has(word)) return word;
   return unaccented.get(word);
 }
 
 /** Transcription en tolérant l'absence d'accents : lookup(word) puis la forme accentuée. */
 export function lookupLoose(word) {
-  const direct = dictionary.get(word);
+  const direct = userEntries.get(word) ?? dictionary.get(word);
   if (direct !== undefined) return direct;
   const accented = unaccented.get(word);
   return accented !== undefined ? dictionary.get(accented) : undefined;

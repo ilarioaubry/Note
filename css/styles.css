@@ -76,7 +76,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
   grid-template-areas: "top top top" "left center right" "player player player";
 }
 .topbar { grid-area: top; }
-.col-left { grid-area: left; }
+.col-left, .col-ideas { grid-area: left; }
+.col-ideas { display: none; border-right: 1px solid var(--line); }
+#app[data-left="ideas"] .col-left { display: none; }
+#app[data-left="ideas"] .col-ideas { display: block; }
 .col-center { grid-area: center; }
 .col-right { grid-area: right; }
 .player { grid-area: player; }
@@ -330,6 +333,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
   #app[data-view="projects"] .col-left { display: block; }
   #app[data-view="write"] .col-center { display: flex; }
   #app[data-view="inspect"] .col-right { display: flex; overflow: auto; }
+  #app .col-ideas { grid-area: main; display: none; border: 0; }
+  #app[data-view="ideas"] .col-ideas { display: block; }
+  #app[data-view="projects"] .col-left { display: block; }
+  .desk-only { display: none; }
   .panel-grow { flex: none; overflow: visible; }
 
   /* Boutons tactiles */
@@ -370,7 +377,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
   /* Barre d'onglets */
   .tabbar {
-    grid-area: tabs; display: grid; grid-template-columns: repeat(3, 1fr);
+    grid-area: tabs; display: grid; grid-template-columns: repeat(4, 1fr);
     background: var(--bg-2); border-top: 1px solid var(--line);
     padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - 14px));   /* barre plus basse : on rogne l'espace réservé sous les onglets */
   }
@@ -421,3 +428,82 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: color-mix(in srgb, var(--cc) 20%, transparent); border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent);
 }
 .cchip b { font-weight: 600; opacity: .8; font-size: 11px; }
+
+/* ---------- Éléments communs : puces, en-têtes ---------- */
+.head-actions { display: flex; align-items: center; gap: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-height: 22px; }
+.chip-btn {
+  font: inherit; font-size: 13px; padding: 4px 9px; border-radius: 6px; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--line); color: var(--text);
+}
+.chip-btn b { font-weight: 600; color: var(--text-dim); font-size: 11px; margin-left: 2px; }
+.chip-btn:hover, .chip-btn.on { border-color: var(--accent); color: var(--accent); }
+.chip-btn .mono { color: var(--text-faint); font-size: 11px; }
+.chip-btn.word.fixed { border-color: color-mix(in srgb, var(--accent-2) 60%, var(--line)); }
+.tag b { font-weight: 600; opacity: .75; }
+.tag.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.tag.theme { color: var(--v-e); }
+.tag.waiting { color: var(--accent-2); border-style: dashed; }
+.tag.album { color: var(--v-on); }
+.mini-select {
+  max-width: 55%; background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 3px 6px; font-size: 12px;
+}
+.hint-inline { text-transform: none; letter-spacing: 0; color: var(--text-faint); }
+
+/* ---------- Panneau Projet ---------- */
+.album-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
+.album-stats > * {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px; border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--line); text-align: left; font: inherit; color: var(--text);
+}
+.album-stats b { font-size: 18px; font-weight: 600; }
+.album-stats span { font-size: 11px; color: var(--text-dim); line-height: 1.25; }
+.stat-btn { cursor: pointer; }
+.stat-btn:hover { border-color: var(--accent); }
+
+/* ---------- Banque d'idées ---------- */
+.import { margin-bottom: 10px; }
+.import summary { list-style: none; display: inline-block; margin-bottom: 8px; }
+.import summary::-webkit-details-marker { display: none; }
+.import[open] summary { color: var(--accent); border-color: var(--accent); }
+.import textarea { min-height: 140px; resize: vertical; font-family: var(--font-ui); margin-bottom: 8px; }
+#ideasSearch { margin-bottom: 8px; }
+.ideas-filter { margin-bottom: 8px; display: flex; }
+.ideas-filter button { flex: 1; }
+.ideas-list { list-style: none; margin: 0; padding: 0 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.idea { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.idea.used { border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); }
+.idea-text { white-space: pre-wrap; font-size: 15px; line-height: 1.45; margin-bottom: 8px; }
+.idea-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.idea-actions { display: flex; gap: 6px; }
+.idea-actions .btn { flex: 1; }
+.idea-empty { padding: 12px 0; line-height: 1.5; }
+
+/* ---------- Analyse : prononciation, ça sonne avec, ce texte ---------- */
+.pron-editor {
+  margin-top: 8px; padding: 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--accent);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.pron-editor .field { display: flex; flex-direction: column; gap: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+.pron-editor input { font: inherit; font-size: 15px; text-transform: none; letter-spacing: 0; padding: 7px 8px; background: var(--bg-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+.pron-preview { font-size: 12px; color: var(--accent); min-height: 16px; }
+.pron-head { font-size: 13px; }
+.sounds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.sound {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left;
+  font: inherit; font-size: 14px; color: var(--text); padding: 7px 9px; border-radius: 6px; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--line);
+}
+.sound:hover { border-color: var(--accent); }
+.sound .tag { flex: none; }
+.brief { margin: 0 0 4px; font-size: 14px; line-height: 1.45; }
+.figs { display: flex; flex-direction: column; gap: 4px; }
+.fig { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+.fig summary { cursor: pointer; font-size: 13px; }
+.fig summary b { color: var(--text-dim); font-weight: 600; font-size: 11px; }
+.fig ul { list-style: none; margin: 6px 0 2px; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-dim); }
+.fig-line {
+  font: inherit; font-size: 11px; font-family: var(--font-mono); color: var(--accent); background: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 4px; padding: 0 5px; cursor: pointer;
+}

@@ -12,12 +12,21 @@ import { clearSyllableCache } from './engine/syllabify.js';
 import { clearConsonanceCache } from './engine/consonance.js';
 import { markRepetitions, repeatsInRange, topTics } from './engine/repetition.js';
 import { registerWords, rebuildFromLexicon } from './engine/rhymeDictionary.js';
-import { loadLexique } from './engine/lexicon.js';
+import { loadLexique, setUserEntry, removeUserEntry, isKnownWord, stripAccents } from './engine/lexicon.js';
+import { reindexWord } from './engine/rhymeDictionary.js';
+import { detectThemes, detectMood, keywords, contentWords } from './engine/themes.js';
+import { detectFigures } from './engine/figures.js';
+import { soundsLike, isIdeaUsed } from './engine/ideas.js';
+import { ideaUsage, albumReport } from './engine/project.js';
+import { analyzeWord, tokenize } from './engine/phonetics.js';
 import * as store from './store/storage.js';
 import { createEditor } from './ui/editor.js';
 import { createSidebar } from './ui/sidebar.js';
 import { createInspector } from './ui/inspector.js';
 import { createPlayer, isAudioFile } from './ui/player.js';
+import { createIdeasView } from './ui/ideas.js';
+import { createOverview, ALL_ALBUMS } from './ui/overview.js';
+import { createUnderstanding } from './ui/understanding.js';
 
 const DEMO = `[Couplet 1]
 j'écris la nuit quand la ville s'endort
@@ -44,7 +53,15 @@ const state = {
   analysis: null,
   sections: [],
   tics: [],
+  ideas: store.loadIdeas(),          // banque d'idées
+  userLex: store.loadUserLex(),      // corrections de prononciation
+  usage: new Map(),                  // idée → sons validés où elle est dite
+  album: ALL_ALBUMS,                 // projet affiché dans la vue d'ensemble
+  lexReady: false,
 };
+
+// Corrections de prononciation : appliquées avant toute analyse
+for (const [w, e] of Object.entries(state.userLex)) setUserEntry(w, e.phon);
 
 if (!state.projects.length) {
   state.projects.push(store.newProject({ title: 'Démo — Nuit blanche', text: DEMO, bpm: 92, key: 'Am' }));
@@ -62,6 +79,8 @@ const editor = createEditor($('#editor'), {
     analyze();
     save();
     refreshTics();
+    refreshJargon();
+    if (p.status === 'valide') refreshIdeas();
   },
   onCaret: () => updateInspector(),
 });
@@ -74,6 +93,8 @@ const sidebar = createSidebar(
     onTitle: (v) => setProjectField('title', v.trim() || 'Sans titre'),
     onBpm: (v) => { if (v >= 40 && v <= 240) setProjectField('bpm', v); else sidebar.syncEdit(current()); },
     onKey: (v) => setProjectField('key', v),
+    onAlbum: (v) => { setProjectField('album', v); refreshIdeas(); },
+    onStatus: (v) => { setProjectField('status', v); sidebar.syncEdit(current()); save.flush(); refreshIdeas(); },
     onExport: () => exportCurrent(),
     onDelete: () => deleteCurrent(),
   },
@@ -98,6 +119,108 @@ const player = createPlayer({
   setOffset: (t) => setProjectField('offset', t),
 });
 
+const understanding = createUnderstanding({
+  words: $('#insWords'), editor: $('#pronEditor'), sounds: $('#soundsList'), summary: $('#textSummary'),
+}, {
+  onPronounce: (word, as) => {
+    const phon = analyzeWord(as).phon;                 // calculé AVANT d'enregistrer la correction
+    state.userLex[word] = { as, phon };
+    store.saveUserLex(state.userLex);
+    setUserEntry(word, phon);
+    afterLexChange(word);
+  },
+  onUnpronounce: (word) => {
+    delete state.userLex[word];
+    store.saveUserLex(state.userLex);
+    removeUserEntry(word);
+    afterLexChange(word);
+  },
+  onUseLine: (text) => { setView('write'); editor.insertLineBelow(text); },
+  onGotoLine: (i) => { setView('write'); requestAnimationFrame(() => editor.gotoLine(i)); },
+});
+
+function afterLexChange(word) {
+  resetCaches();
+  reindexWord(word);
+  analyze();
+  refreshJargon();
+}
+
+const ideasView = createIdeasView({
+  count: $('#ideasCount'), paste: $('#ideasPaste'), importBtn: $('#ideasImportBtn'), preview: $('#ideasPreview'),
+  details: $('#ideasImport'), search: $('#ideasSearch'), filter: $('#ideasFilter'), themes: $('#ideasThemes'), list: $('#ideasList'),
+}, {
+  onImport: (frags) => {
+    const known = new Set(state.ideas.map((i) => i.text));
+    const added = frags.filter((f) => !known.has(f)).map((f) => store.newIdea(f));
+    state.ideas.push(...added);
+    saveIdeas();
+    return added.length;
+  },
+  onInsert: (text) => { setView('write'); editor.insertLineBelow(text); },
+  onDelete: (id) => { state.ideas = state.ideas.filter((i) => i.id !== id); saveIdeas(); },
+});
+
+function saveIdeas() {
+  store.saveIdeas(state.ideas);
+  refreshIdeas();
+  refreshTics();
+  refreshJargon();
+  updateInspector();
+}
+
+const overview = createOverview({ select: $('#albumSelect'), body: $('#albumBody'), jargon: $('#jargonList') }, {
+  onSelectAlbum: (v) => { state.album = v; refreshOverview(); },
+  onShowIdeas: (f) => { ideasView.setFilter(f); showIdeas(); },
+  onWord: (w) => { setView('inspect'); understanding.editWord(w); },
+});
+
+/* ====================== Compréhension (thèmes, figures, idées, projet) ====================== */
+const refreshSummary = debounce(() => {
+  const p = current();
+  if (!state.analysis || !p) return;
+  const words = new Set(contentWords(p.text));
+  understanding.renderSummary({
+    themes: detectThemes(p.text),
+    mood: detectMood(p.text),
+    keywords: keywords(p.text, state.projects.filter((x) => x.id !== p.id).map((x) => x.text)),
+    figures: detectFigures(state.analysis),
+    ideas: state.ideas.filter((i) => isIdeaUsed(i.text, p.text, words)),
+  });
+}, 600);
+
+const refreshIdeas = debounce(() => {
+  state.usage = ideaUsage(state.ideas, state.projects);
+  ideasView.update({ ideas: state.ideas, usage: state.usage });
+  refreshOverview();
+}, 300);
+
+function refreshOverview() {
+  const albums = [...new Set(state.projects.map((p) => p.album).filter(Boolean))].sort();
+  const texts = albums.includes(state.album) ? state.projects.filter((p) => p.album === state.album) : state.projects;
+  overview.render({ albums, selected: state.album, report: albumReport(texts, state.ideas, state.usage) });
+}
+
+/** Mots que tu emploies et que le dictionnaire ne connaît pas (argot, jargon, mots inventés). */
+const refreshJargon = debounce(() => {
+  if (!state.lexReady) return;
+  const counts = new Map();
+  for (const text of [...state.projects.map((p) => p.text), ...state.ideas.map((i) => i.text)]) {
+    for (const line of text.split('\n')) {
+      if (/^\s*[\[#]/.test(line)) continue;
+      for (const t of tokenize(line)) {
+        const w = t.text.toLowerCase().replace(/’/g, "'").split("'").pop();
+        if (w.length < 3 || !/^\p{L}+$/u.test(w)) continue;
+        const mine = Boolean(state.userLex[w]);                       // mot corrigé par toi : il reste dans ton vocabulaire
+        if (!mine && (isKnownWord(w) || isKnownWord(w.replace(/[sx]$/, '')) || isKnownWord(stripAccents(w)))) continue;
+        counts.set(w, (counts.get(w) ?? 0) + 1);
+      }
+    }
+  }
+  overview.renderJargon([...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 40)
+    .map(([word, count]) => ({ word, count, fixed: Boolean(state.userLex[word]) })));
+}, 1200);
+
 /* ====================== Analyse ====================== */
 const analyze = rafThrottle(() => {
   const { settings: s } = state;
@@ -105,6 +228,7 @@ const analyze = rafThrottle(() => {
   state.sections = markRepetitions(state.analysis.lines);
   editor.render(state.analysis, { xray: s.xray, grid: s.grid, mode: s.mode });
   updateInspector();
+  refreshSummary();
 });
 
 const updateInspector = debounce(() => {
@@ -121,10 +245,14 @@ const updateInspector = debounce(() => {
     tics: new Set(state.tics.map((t) => t.lemma)),
     strict: state.settings.strict,
   });
+  const line = lines[idx];
+  understanding.renderWords(line, state.userLex);
+  const lyric = line && !line.isMeta && line.words.length;
+  understanding.renderSounds(lyric ? soundsLike(line.text, state.ideas) : [], state.ideas.length > 0);
 }, 100);
 
 const refreshTics = debounce(() => {
-  const texts = state.projects.map((p) => p.text);
+  const texts = [...state.projects.map((p) => p.text), ...state.ideas.map((i) => i.text)];
   state.tics = topTics(texts, 10);
   sidebar.renderTics(state.tics, state.projects.length);
   registerWords(texts.join(' ').toLowerCase().match(/[\p{L}]{2,}/gu) ?? []);
@@ -265,6 +393,13 @@ function setView(view) {
 }
 $$('#tabbar button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
 
+// Ordinateur : la colonne de gauche bascule entre Textes et Idées
+$$('[data-left]').forEach((b) => b.addEventListener('click', () => { app.dataset.left = b.dataset.left; }));
+function showIdeas() {
+  if (isMobile()) setView('ideas');
+  else app.dataset.left = 'ideas';
+}
+
 $('#btnPlMore').addEventListener('click', () => {
   const open = $('#player').classList.toggle('open');
   $('#btnPlMore').setAttribute('aria-expanded', String(open));
@@ -291,6 +426,8 @@ const lexStatus = $('#lexStatus');
 loadLexique('data/lexique.json')
   .then(async (n) => {
     resetCaches();
+    state.lexReady = true;
+    refreshJargon();
     lexStatus.textContent = `Lexique 3 : ${n.toLocaleString('fr-FR')} mots · indexation des rimes…`;
     analyze();
     const size = await rebuildFromLexicon();
@@ -309,4 +446,5 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 syncToggles();
 openProject(state.currentId);
 refreshTics.flush();
+refreshIdeas.flush();
 setStatus('Prêt');

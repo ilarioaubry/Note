@@ -29,9 +29,19 @@
     <div class="panel">
       <div class="panel-head">
         <h2>Textes</h2>
-        <button class="btn btn-accent" id="btnNew" title="Nouveau texte">＋ Nouveau</button>
+        <div class="head-actions">
+          <button class="btn btn-sm desk-only" data-left="ideas" title="Ouvrir la banque d'idées">Idées ✦</button>
+          <button class="btn btn-accent" id="btnNew" title="Nouveau texte">＋ Nouveau</button>
+        </div>
       </div>
       <ul class="project-list" id="projectList"></ul>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Projet</h2>
+        <select class="mini-select" id="albumSelect" aria-label="Projet affiché"></select>
+      </div>
+      <div class="album" id="albumBody"></div>
     </div>
     <div class="panel">
       <div class="panel-head">
@@ -40,6 +50,41 @@
       </div>
       <ol class="tics" id="ticsList"></ol>
     </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Ton vocabulaire</h2><span class="muted small">hors dictionnaire</span></div>
+      <div class="chips" id="jargonList"></div>
+      <p class="muted small hint">Tes mots d'argot, de jargon ou inventés. Touche un mot pour corriger sa prononciation.</p>
+    </div>
+  </aside>
+
+  <!-- ============ Banque d'idées ============ -->
+  <aside class="col col-ideas" id="ideasView">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Banque d'idées</h2>
+        <div class="head-actions">
+          <span class="muted small" id="ideasCount"></span>
+          <button class="btn btn-sm desk-only" data-left="texts" title="Revenir aux textes">← Textes</button>
+        </div>
+      </div>
+      <details class="import" id="ideasImport">
+        <summary class="btn">＋ Coller ma note</summary>
+        <textarea class="input" id="ideasPaste" rows="8" spellcheck="false"
+                  placeholder="Colle ici ta note d'idées. Une ligne vide, une ligne de tirets (---) ou une date seule sépare deux idées."></textarea>
+        <div class="edit-row">
+          <button class="btn btn-accent" id="ideasImportBtn" type="button">Importer</button>
+          <span class="muted small" id="ideasPreview"></span>
+        </div>
+      </details>
+      <input class="input" id="ideasSearch" type="search" placeholder="Chercher un mot…" spellcheck="false">
+      <div class="seg ideas-filter" id="ideasFilter" role="group" aria-label="Filtrer les idées">
+        <button data-f="all" aria-pressed="true">Toutes</button>
+        <button data-f="free" aria-pressed="false">Pas encore dites</button>
+        <button data-f="used" aria-pressed="false">Déjà dites</button>
+      </div>
+      <div class="chips" id="ideasThemes"></div>
+    </div>
+    <ul class="ideas-list" id="ideasList"></ul>
   </aside>
 
   <!-- ============ Colonne centrale : éditeur ============ -->
@@ -87,6 +132,19 @@
       <div class="ins-row"><span class="muted">Rime finale</span><span id="insRhyme" class="mono"></span></div>
       <div class="ins-label muted">Allitérations / consonances</div>
       <div class="cons-chips" id="insCons"></div>
+      <div class="ins-label muted">Mots de la ligne <span class="hint-inline">· touche un mot mal prononcé</span></div>
+      <div class="chips" id="insWords"></div>
+      <div class="pron-editor" id="pronEditor" hidden></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Ça sonne avec…</h2><span class="muted small">ta banque d'idées</span></div>
+      <ul class="sounds" id="soundsList"></ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Ce texte</h2></div>
+      <div id="textSummary"></div>
     </div>
 
     <div class="panel">
@@ -145,6 +203,7 @@
     <button data-view="projects" aria-selected="false"><span class="ti">☰</span>Textes</button>
     <button data-view="write" aria-selected="true"><span class="ti">✎</span>Écrire</button>
     <button data-view="inspect" aria-selected="false"><span class="ti">◎</span>Analyse</button>
+    <button data-view="ideas" aria-selected="false"><span class="ti">✦</span>Idées</button>
   </nav>
 </div>
 
