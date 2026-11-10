@@ -1,0 +1,11 @@
+{
+  "name": "flow-rimes-matrix",
+  "version": "0.1.0",
+  "description": "IDE d'écriture rap français : syllabes parlées, rimes, multis, répétitions, calage sur l'instru.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.js"
+  }
+}

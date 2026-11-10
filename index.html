@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow &amp; Rimes Matrix</title>
+  <meta name="description" content="IDE d'écriture rap français : syllabes, rimes, multis, répétitions et calage sur l'instru.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ Barre supérieure ============ -->
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">▦</span> Flow <span class="amp">&amp;</span> Rimes <b>Matrix</b></div>
+    <div class="toolbar" role="toolbar" aria-label="Affichage">
+      <button class="tgl" id="tglXray" aria-pressed="true" title="Surlignage des assonances et rimes">Rayon X</button>
+      <div class="seg" id="segMode" role="group" aria-label="Densité du Rayon X">
+        <button data-mode="assonances" aria-pressed="true" title="Toutes les voyelles toniques qui se répondent">Assonances</button>
+        <button data-mode="rimes" aria-pressed="false" title="Voyelle tonique + consonnes finales identiques">Rimes</button>
+      </div>
+      <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
+      <button class="tgl" id="tglReps" aria-pressed="true" title="Souligner les mots répétés dans la même section">Répétitions</button>
+      <span class="sep"></span>
+      <button class="tgl" id="tglElision" aria-pressed="true" title="« maint'nant », « sam'di » : ne pas compter les e caducs internes">Flow parlé</button>
+      <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
+    </div>
+    <div class="save-status" id="saveStatus">—</div>
+  </header>
+
+  <!-- ============ Colonne gauche : projets ============ -->
+  <aside class="col col-left">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Textes</h2>
+        <button class="btn btn-accent" id="btnNew" title="Nouveau texte">＋ Nouveau</button>
+      </div>
+      <ul class="project-list" id="projectList"></ul>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Radar à Tics</h2>
+        <span class="muted small" id="ticsScope"></span>
+      </div>
+      <ol class="tics" id="ticsList"></ol>
+    </div>
+  </aside>
+
+  <!-- ============ Colonne centrale : éditeur ============ -->
+  <main class="col col-center">
+    <div class="doc-head">
+      <input class="doc-title" id="docTitle" type="text" placeholder="Titre du morceau" spellcheck="false" aria-label="Titre">
+      <label class="field"><span>BPM</span><input id="docBpm" type="number" min="40" max="240" step="1"></label>
+      <label class="field"><span>Ton.</span><select id="docKey"></select></label>
+      <div class="doc-actions">
+        <button class="btn" id="btnExport" title="Exporter en .txt">Exporter</button>
+        <button class="btn btn-danger" id="btnDelete" title="Supprimer ce texte">Supprimer</button>
+      </div>
+    </div>
+
+    <div class="editor" id="editor">
+      <div class="ed-gutter" aria-hidden="true"><div class="ed-gutter-inner"></div></div>
+      <div class="ed-main">
+        <div class="ed-backdrop" aria-hidden="true"><div class="ed-backdrop-inner"></div></div>
+        <textarea class="ed-input" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"
+                  aria-label="Texte" placeholder="[Couplet 1]&#10;Écris ta première mesure…"></textarea>
+      </div>
+      <div class="ed-badges" aria-hidden="true"><div class="ed-badges-inner"></div></div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+  </main>
+
+  <!-- ============ Colonne droite : inspecteur ============ -->
+  <aside class="col col-right" id="inspector">
+    <div class="panel">
+      <div class="panel-head"><h2>Inspecteur</h2><span class="muted small" id="insLineNo"></span></div>
+      <div class="ins-line" id="insLine">—</div>
+      <div class="ins-row"><span class="muted">Syllabes</span><b id="insSyl">0</b></div>
+      <div class="ins-label muted">Signature vocalique</div>
+      <div class="signature" id="insSignature"></div>
+      <div class="ins-label muted">Phonétique (API)</div>
+      <div class="ipa" id="insIpa"></div>
+      <div class="ins-row"><span class="muted">Rime finale</span><span id="insRhyme" class="mono"></span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Répétitions</h2><span class="muted small" id="insSection"></span></div>
+      <ul class="reps" id="insReps"></ul>
+    </div>
+
+    <div class="panel panel-grow">
+      <div class="panel-head"><h2>Boîte à rimes</h2></div>
+      <input class="input" id="rhymeInput" type="search" placeholder="Mot à faire rimer…" spellcheck="false">
+      <div class="rhyme-results" id="rhymeResults"></div>
+      <p class="muted small" id="lexStatus"></p>
+    </div>
+  </aside>
+
+  <!-- ============ Lecteur audio ============ -->
+  <footer class="player" id="player">
+    <div class="pl-file">
+      <button class="btn" id="btnLoad" title="Importer une instru (.mp3, .wav)">♫ Instru</button>
+      <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" hidden>
+      <span class="track" id="trackName">Glisse un .mp3 / .wav ici</span>
+    </div>
+    <div class="pl-transport">
+      <button class="btn btn-play" id="btnPlay" title="Lecture / pause (Ctrl+Espace)" disabled>▶</button>
+      <span class="time mono" id="time">0:00 / 0:00</span>
+    </div>
+    <div class="pl-wave" id="waveWrap" title="Clic : se placer · Maj+glisser : définir la boucle">
+      <canvas id="wave"></canvas>
+    </div>
+    <div class="pl-loop">
+      <button class="btn btn-sm" id="btnA" title="Point A (Alt+A)">A</button>
+      <button class="btn btn-sm" id="btnB" title="Point B (Alt+B)">B</button>
+      <button class="btn btn-sm tgl" id="btnLoop" aria-pressed="false" title="Boucle A/B (Alt+L)">⟲</button>
+      <button class="btn btn-sm" id="btnBars4" title="Boucle de 4 mesures depuis la mesure en cours">4m</button>
+      <button class="btn btn-sm" id="btnBars8" title="Boucle de 8 mesures depuis la mesure en cours">8m</button>
+      <span class="loop-info mono small" id="loopInfo"></span>
+    </div>
+    <div class="pl-tempo">
+      <button class="btn btn-sm" id="btnTap" title="Tap tempo (Alt+T)">TAP</button>
+      <span class="bpm mono" id="bpmDisplay">90</span>
+      <div class="metro" id="metro" aria-label="Métronome visuel">
+        <i data-b="1"></i><i data-b="2"></i><i data-b="3"></i><i data-b="4"></i>
+      </div>
+      <span class="bar mono small" id="barInfo">M1</span>
+      <button class="btn btn-sm" id="btnDownbeat" title="Caler le temps 1 sur la position actuelle">1↓</button>
+      <button class="btn btn-sm tgl" id="btnMetro" aria-pressed="false" title="Métronome sans instru">Métro</button>
+      <button class="btn btn-sm tgl" id="btnClick" aria-pressed="false" title="Clic sonore">Clic</button>
+    </div>
+    <audio id="audio" preload="auto"></audio>
+  </footer>
+</div>
+
+<div class="drop-overlay" id="dropOverlay"><div>Dépose ton instru (.mp3 / .wav) ou un .txt</div></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
