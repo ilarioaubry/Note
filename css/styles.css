@@ -88,7 +88,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand b { color: var(--accent); font-weight: 700; }
 .brand .amp { color: var(--text-faint); }
 .brand-mark { color: var(--accent); }
-.toolbar { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; }
+.toolbar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#toolbarMain { flex: 0 0 auto; }
+.toolbar-more { flex: 1; justify-content: flex-end; overflow-x: auto; }
+.btn-menu, .btn-more, .tabbar { display: none; }
 .sep { width: 1px; height: 20px; background: var(--line); margin: 0 6px; }
 .save-status { color: var(--text-faint); font-size: 11px; white-space: nowrap; font-family: var(--font-mono); }
 .save-status.saved { color: var(--ok); }
@@ -290,7 +293,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .track { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); font-size: 12px; }
 .btn-play { width: 38px; height: 32px; font-size: 14px; color: var(--accent); }
 .time { font-size: 12px; color: var(--text-dim); min-width: 90px; }
-.pl-wave { height: 44px; position: relative; cursor: pointer; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.pl-wave { touch-action: none; height: 44px; position: relative; cursor: pointer; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .pl-wave canvas { width: 100%; height: 100%; display: block; }
 .loop-info { color: var(--text-faint); min-width: 70px; }
 .bpm { color: var(--accent-2); min-width: 28px; text-align: right; }
@@ -311,22 +314,90 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- Scrollbars ---------- */
 * { scrollbar-width: thin; scrollbar-color: #2f3640 transparent; }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 1000px) {
-  body { overflow: auto; }
+/* ---------- Mobile : un écran à la fois ---------- */
+@media (max-width: 900px) {
+  :root { --ed-font-size: 13px; --ed-line: 26px; --ed-pad: 10px; }
+  html, body { position: fixed; inset: 0; width: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+
   #app {
-    height: auto; min-height: 100vh;
+    height: var(--app-h, 100dvh);
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 70vh auto auto auto;
-    grid-template-areas: "top" "center" "right" "left" "player";
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "top" "main" "player" "tabs";
+    padding-top: env(safe-area-inset-top);
   }
-  .topbar { flex-wrap: wrap; padding: 8px 12px; height: auto; }
   #app > * { min-width: 0; }
-  .toolbar { flex-wrap: wrap; overflow: visible; }
-  .save-status { width: 100%; }
-  .player { grid-template-columns: minmax(0, 1fr); position: sticky; bottom: 0; gap: 8px; }
-  .pl-file, .pl-transport, .pl-loop, .pl-tempo { flex-wrap: wrap; }
-  .editor { grid-template-columns: 34px minmax(0, 1fr) 48px; }
-  .doc-title { flex-basis: 100%; }
-  .col-left, .col-right { border: 0; border-top: 1px solid var(--line); }
+  .col-left, .col-center, .col-right { grid-area: main; display: none; border: 0; }
+  #app[data-view="projects"] .col-left { display: block; }
+  #app[data-view="write"] .col-center { display: flex; }
+  #app[data-view="inspect"] .col-right { display: flex; overflow: auto; }
+  .panel-grow { flex: none; overflow: visible; }
+
+  /* Boutons tactiles */
+  .btn, .tgl, .seg button { min-height: 38px; padding: 4px 11px; }
+  .btn-sm { min-height: 34px; min-width: 38px; padding: 2px 9px; }
+
+  /* Barre du haut : 1 rangée + panneau de réglages */
+  .topbar { flex-wrap: wrap; gap: 6px; padding: 6px 8px; height: auto; }
+  .brand { display: none; font-size: 14px; padding-left: 4px; }
+  #app:not([data-view="write"]) .brand { display: block; flex: 1; }
+  #app:not([data-view="write"]) #toolbarMain { display: none; }
+  #toolbarMain { flex: 1; overflow-x: auto; scrollbar-width: none; }
+  #toolbarMain .tgl, #toolbarMain .seg button { font-size: 12px; padding: 4px 8px; }
+  .btn-menu { display: inline-block; width: 40px; padding: 0; font-size: 18px; }
+  .btn-menu[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+  .toolbar-more { display: none; flex: 1 0 100%; flex-wrap: wrap; justify-content: flex-start; padding: 6px 0 2px; overflow: visible; }
+  #app.menu-open .toolbar-more { display: flex; }
+  .toolbar-more .sep { display: none; }
+  .toolbar-more .save-status { flex: 1 0 100%; font-size: 11px; }
+
+  /* Écrire */
+  .doc-head { padding: 4px 10px; gap: 4px 10px; }
+  .doc-title { flex: 1 0 100%; font-size: 15px; padding: 2px 0; }
+  .field input { width: 58px; }
+  .field input, .field select { padding: 5px 6px; }
+  .editor { grid-template-columns: minmax(0, 1fr) 38px; }
+  .ed-gutter, .legend { display: none; }
+  .badge { min-width: 28px; line-height: 20px; font-size: 12px; }
+
+  /* Textes / Analyse */
+  .panel { padding: 12px 14px; }
+  .project-list li { padding: 12px 10px; }
+  .project-list .p-title { font-size: 15px; }
+  .btn-accent { min-height: 40px; }
+  .rhyme-group button { padding: 6px 10px; font-size: 13px; }
+  .input { padding: 9px 10px; font-size: 16px; }
+  .ins-line { font-size: 13px; }
+
+  /* Lecteur compact */
+  .player { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 6px 10px; min-height: 0; }
+  .pl-wave { order: -1; flex: 1 0 100%; height: 36px; }
+  .player:not(.has-audio) .pl-wave { display: none; }
+  .track { display: none; }
+  .pl-file, .pl-transport, .pl-loop { gap: 6px; }
+  .pl-transport { flex: 1; }
+  .btn-play { height: 38px; width: 46px; }
+  .btn-more { display: inline-block; }
+  .btn-more[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+  .player:not(.open) .more-only { display: none; }
+  .player.open .pl-loop { flex: 1 0 100%; flex-wrap: wrap; }
+  .player.open .pl-tempo { flex: 1 0 100%; flex-wrap: wrap; }
+  .time { min-width: 0; font-size: 11px; }
+
+  /* Barre d'onglets */
+  .tabbar {
+    grid-area: tabs; display: grid; grid-template-columns: repeat(3, 1fr);
+    background: var(--bg-2); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tabbar button {
+    background: none; border: 0; color: var(--text-dim); padding: 7px 0 6px; font-size: 11px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 52px;
+  }
+  .tabbar .ti { font-size: 18px; line-height: 1.1; }
+  .tabbar button[aria-selected="true"] { color: var(--accent); box-shadow: inset 0 2px 0 var(--accent); }
+
+  /* Clavier virtuel ouvert : on libère la place */
+  #app.kbd .tabbar, #app.kbd .player, #app.kbd .doc-head { display: none; }
+  #app.kbd { padding-top: 0; }
 }

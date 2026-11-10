@@ -107,6 +107,14 @@ Ajoute un test dans `tests/phonetics.test.js` à chaque correction pour ne pas r
 
 On peut aussi glisser un `.txt` sur la fenêtre pour l'importer comme nouveau texte.
 
+## Sur téléphone
+
+L'interface est pensée mobile d'abord (≤ 900 px de large) : un écran à la fois, avec une barre
+d'onglets en bas **Textes · Écrire · Analyse**. Le bouton ⚙ ouvre les réglages avancés (répétitions,
+flow parlé, é ≠ è, export, suppression) ; le bouton ⋯ du lecteur ouvre A/B, 8 mesures, tap tempo et
+métronome. Quand le clavier s'ouvre, le lecteur et les onglets se masquent pour laisser la place au texte.
+Un `manifest.webmanifest` permet d'« Ajouter à l'écran d'accueil » (plein écran, icône dédiée).
+
 ## Limites connues (V1)
 
 - G2P à règles : quelques erreurs restent sur les homographes (`les poules couvent` / `le couvent`,

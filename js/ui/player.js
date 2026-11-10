@@ -33,6 +33,7 @@ export function createPlayer(els, { getBpm, setBpm, getOffset, setOffset }) {
     trackName.textContent = file.name;
     trackName.title = file.name;
     btnPlay.disabled = false;
+    waveWrap.closest('.player')?.classList.add('has-audio');
     loop.a = loop.b = null; loop.on = false;
     peaks = null;
     updateLoopUI();
@@ -133,7 +134,16 @@ export function createPlayer(els, { getBpm, setBpm, getOffset, setOffset }) {
   waveWrap.addEventListener('pointerdown', (e) => {
     if (!audio.duration) return;
     const t0 = timeAt(e);
-    if (!e.shiftKey) { audio.currentTime = t0; draw(); return; }
+    if (!e.shiftKey) {
+      audio.currentTime = t0; draw();
+      waveWrap.setPointerCapture(e.pointerId);
+      const scrub = (ev) => { audio.currentTime = timeAt(ev); draw(); };
+      const end = () => waveWrap.removeEventListener('pointermove', scrub);
+      waveWrap.addEventListener('pointermove', scrub);
+      waveWrap.addEventListener('pointerup', end, { once: true });
+      waveWrap.addEventListener('pointercancel', end, { once: true });
+      return;
+    }
     waveWrap.setPointerCapture(e.pointerId);
     loop.a = t0; loop.b = null; loop.on = false;
     const move = (ev) => {

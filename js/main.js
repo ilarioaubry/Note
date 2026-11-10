@@ -77,14 +77,14 @@ const editor = createEditor($('#editor'), {
 
 const sidebar = createSidebar(
   { list: $('#projectList'), tics: $('#ticsList'), ticsScope: $('#ticsScope'), btnNew: $('#btnNew') },
-  { onSelect: openProject, onNew: () => openProject(createProject()) },
+  { onSelect: (id) => { openProject(id); setView('write'); }, onNew: () => { openProject(createProject()); setView('write'); } },
 );
 
 const inspector = createInspector({
   line: $('#insLine'), lineNo: $('#insLineNo'), syl: $('#insSyl'), signature: $('#insSignature'),
   ipa: $('#insIpa'), rhyme: $('#insRhyme'), reps: $('#insReps'), section: $('#insSection'),
   rhymeInput: $('#rhymeInput'), rhymeResults: $('#rhymeResults'),
-}, { onInsert: (w) => editor.insertAtCursor(w) });
+}, { onInsert: (w) => { setView('write'); editor.insertAtCursor(w); } });
 
 const player = createPlayer({
   audio: $('#audio'), btnLoad: $('#btnLoad'), fileInput: $('#fileInput'), trackName: $('#trackName'),
@@ -167,7 +167,7 @@ function openProject(id) {
   sidebar.renderProjects(state.projects, state.currentId);
   store.saveCurrentId(id);
   analyze();
-  editor.focus();
+  if (!isMobile()) editor.focus();   // sur téléphone, ne pas ouvrir le clavier tout seul
 }
 
 const docTitle = $('#docTitle'), docBpm = $('#docBpm'), docKey = $('#docKey');
@@ -264,6 +264,50 @@ window.addEventListener('drop', async (e) => {
     openProject(p.id);
   }
 });
+
+/* ====================== Mobile : onglets, réglages, clavier ====================== */
+const app = $('#app');
+const isMobile = () => matchMedia('(max-width: 900px)').matches;
+let savedScroll = { top: 0, left: 0 };
+
+function setView(view) {
+  const ta = editor.textarea;
+  if (app.dataset.view === 'write') savedScroll = { top: ta.scrollTop, left: ta.scrollLeft };
+  app.dataset.view = view;
+  app.classList.remove('menu-open');
+  $('#btnMenu').setAttribute('aria-expanded', 'false');
+  $$('#tabbar button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === view)));
+  if (view === 'write') {
+    ta.scrollTop = savedScroll.top;
+    ta.scrollLeft = savedScroll.left;
+    ta.dispatchEvent(new Event('scroll'));
+  } else {
+    ta.blur();
+  }
+}
+$$('#tabbar button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+
+$('#btnMenu').addEventListener('click', () => {
+  const open = app.classList.toggle('menu-open');
+  $('#btnMenu').setAttribute('aria-expanded', String(open));
+});
+$('#btnPlMore').addEventListener('click', () => {
+  const open = $('#player').classList.toggle('open');
+  $('#btnPlMore').setAttribute('aria-expanded', String(open));
+});
+
+// Hauteur réellement visible (iOS ne redimensionne pas la page quand le clavier s'ouvre)
+const vv = window.visualViewport;
+function fitViewport() {
+  const h = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-h', `${Math.round(h)}px`);
+  app.classList.toggle('kbd', isMobile() && window.innerHeight - h > 150);
+  if (isMobile()) window.scrollTo(0, 0);
+}
+vv?.addEventListener('resize', fitViewport);
+vv?.addEventListener('scroll', fitViewport);
+window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
+fitViewport();
 
 /* ====================== Dictionnaire externe (optionnel) ====================== */
 // Dépose un fichier data/lexique.json (format Lexique3 : [{ortho, phon}] ou {mot: phon}) pour l'activer.

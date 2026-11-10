@@ -2,30 +2,43 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#14171c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Flow Matrix">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
   <title>Flow &amp; Rimes Matrix</title>
   <meta name="description" content="IDE d'écriture rap français : syllabes, rimes, multis, répétitions et calage sur l'instru.">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div id="app">
+<div id="app" data-view="write">
 
   <!-- ============ Barre supérieure ============ -->
   <header class="topbar">
     <div class="brand"><span class="brand-mark">▦</span> Flow <span class="amp">&amp;</span> Rimes <b>Matrix</b></div>
-    <div class="toolbar" role="toolbar" aria-label="Affichage">
+    <div class="toolbar" id="toolbarMain" role="toolbar" aria-label="Affichage">
       <button class="tgl" id="tglXray" aria-pressed="true" title="Surlignage des assonances et rimes">Rayon X</button>
       <div class="seg" id="segMode" role="group" aria-label="Densité du Rayon X">
         <button data-mode="assonances" aria-pressed="true" title="Toutes les voyelles toniques qui se répondent">Assonances</button>
         <button data-mode="rimes" aria-pressed="false" title="Voyelle tonique + consonnes finales identiques">Rimes</button>
       </div>
       <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
+    </div>
+    <button class="btn btn-menu" id="btnMenu" aria-expanded="false" aria-label="Réglages">⚙</button>
+    <div class="toolbar toolbar-more" id="toolbarMore">
       <button class="tgl" id="tglReps" aria-pressed="true" title="Souligner les mots répétés dans la même section">Répétitions</button>
-      <span class="sep"></span>
       <button class="tgl" id="tglElision" aria-pressed="true" title="« maint'nant », « sam'di » : ne pas compter les e caducs internes">Flow parlé</button>
       <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
+      <span class="sep"></span>
+      <button class="btn" id="btnExport" title="Exporter en .txt">Exporter</button>
+      <button class="btn btn-danger" id="btnDelete" title="Supprimer ce texte">Supprimer</button>
+      <div class="save-status" id="saveStatus">—</div>
     </div>
-    <div class="save-status" id="saveStatus">—</div>
   </header>
 
   <!-- ============ Colonne gauche : projets ============ -->
@@ -52,17 +65,13 @@
       <input class="doc-title" id="docTitle" type="text" placeholder="Titre du morceau" spellcheck="false" aria-label="Titre">
       <label class="field"><span>BPM</span><input id="docBpm" type="number" min="40" max="240" step="1"></label>
       <label class="field"><span>Ton.</span><select id="docKey"></select></label>
-      <div class="doc-actions">
-        <button class="btn" id="btnExport" title="Exporter en .txt">Exporter</button>
-        <button class="btn btn-danger" id="btnDelete" title="Supprimer ce texte">Supprimer</button>
-      </div>
     </div>
 
     <div class="editor" id="editor">
       <div class="ed-gutter" aria-hidden="true"><div class="ed-gutter-inner"></div></div>
       <div class="ed-main">
         <div class="ed-backdrop" aria-hidden="true"><div class="ed-backdrop-inner"></div></div>
-        <textarea class="ed-input" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off"
+        <textarea class="ed-input" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"
                   aria-label="Texte" placeholder="[Couplet 1]&#10;Écris ta première mesure…"></textarea>
       </div>
       <div class="ed-badges" aria-hidden="true"><div class="ed-badges-inner"></div></div>
@@ -112,14 +121,15 @@
       <canvas id="wave"></canvas>
     </div>
     <div class="pl-loop">
-      <button class="btn btn-sm" id="btnA" title="Point A (Alt+A)">A</button>
-      <button class="btn btn-sm" id="btnB" title="Point B (Alt+B)">B</button>
+      <button class="btn btn-sm more-only" id="btnA" title="Point A (Alt+A)">A</button>
+      <button class="btn btn-sm more-only" id="btnB" title="Point B (Alt+B)">B</button>
       <button class="btn btn-sm tgl" id="btnLoop" aria-pressed="false" title="Boucle A/B (Alt+L)">⟲</button>
       <button class="btn btn-sm" id="btnBars4" title="Boucle de 4 mesures depuis la mesure en cours">4m</button>
-      <button class="btn btn-sm" id="btnBars8" title="Boucle de 8 mesures depuis la mesure en cours">8m</button>
-      <span class="loop-info mono small" id="loopInfo"></span>
+      <button class="btn btn-sm more-only" id="btnBars8" title="Boucle de 8 mesures depuis la mesure en cours">8m</button>
+      <span class="loop-info mono small more-only" id="loopInfo"></span>
+      <button class="btn btn-sm btn-more" id="btnPlMore" aria-expanded="false" title="Plus de réglages">⋯</button>
     </div>
-    <div class="pl-tempo">
+    <div class="pl-tempo more-only">
       <button class="btn btn-sm" id="btnTap" title="Tap tempo (Alt+T)">TAP</button>
       <span class="bpm mono" id="bpmDisplay">90</span>
       <div class="metro" id="metro" aria-label="Métronome visuel">
@@ -132,6 +142,13 @@
     </div>
     <audio id="audio" preload="auto"></audio>
   </footer>
+
+  <!-- ============ Navigation mobile ============ -->
+  <nav class="tabbar" id="tabbar" aria-label="Navigation">
+    <button data-view="projects" aria-selected="false"><span class="ti">☰</span>Textes</button>
+    <button data-view="write" aria-selected="true"><span class="ti">✎</span>Écrire</button>
+    <button data-view="inspect" aria-selected="false"><span class="ti">◎</span>Analyse</button>
+  </nav>
 </div>
 
 <div class="drop-overlay" id="dropOverlay"><div>Dépose ton instru (.mp3 / .wav) ou un .txt</div></div>
