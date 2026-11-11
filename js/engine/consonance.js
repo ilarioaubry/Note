@@ -124,6 +124,8 @@ export function detectConsonance(seq) {
       if (strong.has(o.ph)) o.strong = true;
     }
   }
+  detectAlliteration(seq, windows);
+
   for (const { line } of seq) {
     const counts = new Map();
     const strongPh = new Set();
@@ -132,5 +134,41 @@ export function detectConsonance(seq) {
       if (o.strong) strongPh.add(o.ph);
     }
     line.cons = [...counts].map(([ph, count]) => ({ ph, count, strong: strongPh.has(ph) })).sort((a, b) => b.count - a.count);
+  }
+}
+
+/**
+ * Allitération au sens strict, pour le mode Essentiel : le même son en TÊTE de mot
+ * (« Personne, Perf, Presque… Père »), sur au moins 4 mots pleins différents dans une ou deux lignes,
+ * et improbable par hasard. Les consonnes au milieu des mots ne comptent pas : c'est ce qui sépare
+ * une allitération voulue d'un « s » qui traîne partout. Marque `occ.allit = true`.
+ */
+const ALLIT_MIN = 4;
+function detectAlliteration(seq, windows) {
+  for (const idx of windows) {
+    const heads = [];
+    for (const i of idx) {
+      for (const w of seq[i].line.words) {
+        if (w.isStop || !w.cons.length) continue;
+        // tête du mot porteur : après l'élision (« j'suis » → s, « d'ici » → rien : le d est l'article)
+        const start = Math.max(w.text.lastIndexOf("'"), w.text.lastIndexOf('’')) + 1;
+        const first = w.cons.find((c) => c.s >= start);
+        if (first && first.s === start) heads.push({ w, o: first });
+      }
+    }
+    const n = heads.length;
+    if (n < ALLIT_MIN) continue;
+    const byPh = new Map();
+    for (const h of heads) {
+      if (!byPh.has(h.o.ph)) byPh.set(h.o.ph, []);
+      byPh.get(h.o.ph).push(h);
+    }
+    for (const [ph, list] of byPh) {
+      const lemmas = new Set(list.map((h) => h.w.lemma));
+      if (lemmas.size < ALLIT_MIN) continue;
+      const p = (FREQ[ph] ?? 1) / FREQ_SUM;
+      if (poissonTail(lemmas.size, n * p * 1.6) > 0.05) continue;   // les débuts de mots sont plus souvent consonantiques
+      for (const h of list) h.o.allit = true;
+    }
   }
 }

@@ -792,3 +792,24 @@ button.pill.theme { cursor: pointer; }
 /* ---------- Répétitions : cadre en pointillés autour du mot ---------- */
 .w.rep { border-radius: 4px; outline: 1.5px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 1px; }
 .w.rep[data-rep="section"] { outline-color: color-mix(in srgb, var(--text) 32%, transparent); }
+
+/* ---------- Mode Essentiel : l'intensité dit le rôle de la syllabe ---------- */
+.xray .s.k-end   { background: color-mix(in srgb, var(--vc) 50%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc) 70%, transparent); }
+.xray .s.k-echo  { background: color-mix(in srgb, var(--vc) 36%, transparent); }
+.xray .s.k-chain { background: color-mix(in srgb, var(--vc) 20%, transparent); }
+.xray .s.k-multi { background: color-mix(in srgb, var(--vc) 26%, transparent); }
+.s { transition: background-color .2s ease; }
+
+/* pastille : couleur de la rime de fin, dans la marge */
+.badge.rh { position: relative; padding-left: 9px; }
+.badge.rh::before {
+  content: ""; position: absolute; left: 3px; top: 4px; bottom: 4px; width: 3px; border-radius: 2px;
+  background: var(--vc);
+}
+.badge.rh[data-v="a"] { --vc: var(--v-a); } .badge.rh[data-v="an"] { --vc: var(--v-an); } .badge.rh[data-v="o"] { --vc: var(--v-o); }
+.badge.rh[data-v="i"] { --vc: var(--v-i); } .badge.rh[data-v="in"] { --vc: var(--v-in); } .badge.rh[data-v="y"] { --vc: var(--v-y); }
+.badge.rh[data-v="E"] { --vc: var(--v-E); } .badge.rh[data-v="e"] { --vc: var(--v-e); } .badge.rh[data-v="u"] { --vc: var(--v-u); }
+.badge.rh[data-v="on"] { --vc: var(--v-on); } .badge.rh[data-v="eu"] { --vc: var(--v-eu); } .badge.rh[data-v="wa"] { --vc: var(--v-wa); }
+
+/* cadres de multi plus doux */
+.mk { border-width: 1.5px; border-radius: 8px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--mc) 12%, transparent), 0 0 14px color-mix(in srgb, var(--mc) 30%, transparent); }

@@ -97,11 +97,11 @@ export function markLocalRepeats(lines) {
         bigrams.get(key).push([a, b]);
       }
     }
-    for (const occ of bigrams.values()) if (occ.length >= 2) occ.flat().forEach((w) => { w.rep ||= 'local'; });
+    for (const occ of bigrams.values()) if (occ.length >= 2) occ.flat().forEach((w) => { w.rep = 'local'; });
     // mot répété 3 fois dans une même ligne
     const counts = new Map();
     for (const w of lyric[k].words) if (w.text.length >= 4) counts.set(norm(w), (counts.get(norm(w)) ?? 0) + 1);
-    for (const w of lyric[k].words) if ((counts.get(norm(w)) ?? 0) >= 3) w.rep ||= 'local';
+    for (const w of lyric[k].words) if ((counts.get(norm(w)) ?? 0) >= 3) w.rep = 'local';
   }
 }
 
@@ -111,7 +111,7 @@ export function markRepetitions(lines) {
   for (const sec of sections) {
     const reps = repeatsInRange(lines, sec);
     for (let i = sec.start; i <= sec.end; i++) {
-      for (const w of lines[i].words) if (reps.has(w.lemma)) w.rep = 'section';
+      for (const w of lines[i].words) if (reps.has(w.lemma)) w.rep = reps.get(w.lemma).count >= 3 ? 'section3' : 'section';
     }
   }
   markLocalRepeats(lines);

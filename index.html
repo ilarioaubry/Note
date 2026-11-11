@@ -212,17 +212,17 @@
         <div class="display-opts">
           <button class="tgl" id="tglXray" aria-pressed="true" title="Surlignage des assonances et rimes">Rayon X</button>
           <div class="seg" id="segMode" role="group" aria-label="Ce que colore le Rayon X">
-            <button data-mode="assonances" aria-pressed="true">Assonances</button>
-            <button data-mode="rimes" aria-pressed="false">Rimes</button>
-            <button data-mode="consonnes" aria-pressed="false">Consonnes</button>
+            <button data-mode="essentiel" aria-pressed="true" title="Seulement ce qui est fait pour rimer">Essentiel</button>
+            <button data-mode="assonances" aria-pressed="false" title="Toutes les voyelles toniques qui se répondent">Tout</button>
+            <button data-mode="consonnes" aria-pressed="false" title="Toutes les consonnes qui reviennent">Consonnes</button>
           </div>
-          <button class="tgl" id="tglCons" aria-pressed="true" title="Avec les assonances et les rimes, entoure aussi les consonnes vraiment marquées (allitérations)">+ Consonnes marquées</button>
+          <button class="tgl" id="tglCons" aria-pressed="true" title="Entoure aussi les consonnes d'une vraie allitération">+ Allitérations</button>
           <button class="tgl" id="tglReps" aria-pressed="true" title="Encadrer en pointillés les mots et tournures répétés">Répétitions</button>
           <button class="tgl" id="tglGrid" aria-pressed="false" title="Repères des 4 temps (snare sur 2 et 4)">Grille 4/4</button>
           <button class="tgl" id="tglStrict" aria-pressed="false" title="Distinguer é et è pour les rimes">é ≠ è</button>
         </div>
-        <p class="hint">Dans le texte : le fond coloré d'une syllabe = assonance ; un gros cadre de même couleur relie les passages qui riment sur plusieurs syllabes (« chat qui rate » ↔ « shakira ») ; les pointillés signalent une répétition (« dans chaque » ×3).</p>
-        <p class="hint">Rayon X colore les voyelles qui se répondent. Avec « + Consonnes marquées », les consonnes d'une vraie allitération sont en plus entourées. Le mode Consonnes montre toutes les consonnes qui reviennent, sans les voyelles.</p>
+        <p class="hint"><b>Essentiel</b> ne montre que ce qui est fait pour rimer : les fins de ligne qui riment (fond plein), les mots qui leur répondent dans la ligne, les chaînes d'assonance voulues (fond léger), les rimes sur plusieurs syllabes (cadre de même couleur), les vraies allitérations en tête de mot (contour de lettre) et les répétitions serrées (pointillés).</p>
+        <p class="hint"><b>Tout</b> montre chaque voyelle qui a un écho, pour explorer. <b>Consonnes</b> montre tous les sons consonnes qui reviennent.</p>
       </div>
       <div class="card">
         <div class="card-head"><h3>Dictionnaire</h3></div>

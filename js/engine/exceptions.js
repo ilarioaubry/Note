@@ -22,7 +22,7 @@ export const KEEP_FINAL_T = set(`
   net sept huit but brut chut ouest dot direct correct exact strict intact
   contact impact compact tact infect abject verdict district
   street beat feat tweet shit cut hit fit boot shoot night light fight
-  flirt short shirt chat smart start test best must toast ghetto
+  flirt short shirt smart start test best must toast ghetto
   scout sprint script yacht kit spot hot pot shot rocket ticket jet
 `);
 

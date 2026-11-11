@@ -43,9 +43,10 @@ function analyzeLine(text, index, opts) {
         sylStart: syl,
         // une entrée par syllabe prononcée : { start, end (dans le mot), cls, hl, rich, endRhyme, multi }
         // multi = groupe de rime multisyllabique, occ = passage précis (pour l'encadrer à l'écran)
-        syls: syllabify(tok.text, opts).map((x) => ({ ...x, hl: null, rich: false, endRhyme: false, multi: null, occ: null })),
+        // key (mode Essentiel) : 'end' rime de fin, 'echo' rime interne qui répond à une fin, 'chain' assonance voulue
+        syls: syllabify(tok.text, opts).map((x) => ({ ...x, hl: null, rich: false, endRhyme: false, multi: null, occ: null, key: null })),
         // consonnes prononcées : { s, e (lettres du mot), ph, hl } ; hl = fait partie d'une allitération / consonance
-        cons: consonantsOf(tok.text).map((c) => ({ ...c, hl: false, strong: false })),
+        cons: consonantsOf(tok.text).map((c) => ({ ...c, hl: false, strong: false, allit: false })),
         rep: false,
       });
       syl += a.syllables;
@@ -57,6 +58,7 @@ function analyzeLine(text, index, opts) {
     signature: words.flatMap((w) => w.vowels),
     status: 'neutral', reference: null,
     cons: [],     // [{ ph, count }] : sons consonnes retenus dans cette ligne (rempli par detectConsonance)
+    rhymeCls: null,   // voyelle de la rime de fin quand la ligne rime vraiment (pastille dans la marge)
   };
 }
 
@@ -79,6 +81,7 @@ export function analyzeText(text, opts = {}) {
   detectRhymes(seq, o);
   detectMultis(seq, o);
   detectConsonance(seq);
+  detectIntent(seq, o);
   computeRegularity(lines);
   return { lines, opts: o };
 }
@@ -236,4 +239,94 @@ export function beatMarkers(line) {
     map.get(idx).push(beat + 1);
   }
   return map;
+}
+
+/* ---------------- Ce qui est fait pour rimer (mode Essentiel) ----------------
+ *
+ * Le mode « Tout » colore chaque voyelle tonique qui a un écho quelque part : c'est exhaustif,
+ * mais le hasard du français fait que presque tout rime avec quelque chose. Ici on ne garde que
+ * ce qu'un auteur fait exprès :
+ *   1. 'end'   — les fins de ligne qui riment entre elles (même voyelle + mêmes consonnes finales
+ *                sur 4 lignes ; même voyelle seule si les lignes se suivent) ;
+ *   2. 'echo'  — un mot à l'intérieur d'une ligne qui reprend la rime de fin de sa ligne ou d'une
+ *                voisine (« le chat qui rate le RAT … shakiRA »), ou deux mots pleins de la même
+ *                ligne qui riment pleinement entre eux ;
+ *   3. 'chain' — une assonance délibérée : la même voyelle sur au moins 3 syllabes toniques de mots
+ *                pleins dans une même ligne.
+ * Les rimes multisyllabiques (cadres) sont calculées à part (detectMultis).
+ */
+function detectIntent(seq, o) {
+  const tonicOf = (w) => w.syls.at(-1);
+  const vowel = (w) => (w.tonic && w.tonic !== 'schwa' ? matchClass(w.tonic, o.strict) : null);
+  const key = (w) => (vowel(w) ? `${vowel(w)}|${w.coda}` : null);
+  const mark = (w, k) => {
+    const t = tonicOf(w);
+    if (!t || !vowel(w)) return;
+    const rank = { chain: 1, echo: 2, end: 3 };
+    if (!t.key || rank[k] > rank[t.key]) t.key = k;
+  };
+
+  // 1. Fins de ligne
+  const ends = seq.map(({ line }) => line.words.at(-1));
+  const rhymesWith = (a, b) => {
+    const wa = ends[a], wb = ends[b];
+    if (!vowel(wa) || !vowel(wb) || wa.lemma === wb.lemma) return false;
+    if (key(wa) === key(wb)) return true;                          // rime pleine : nuit / pluie, décor / d'or
+    // assonance de fin sur deux lignes qui se suivent, si les deux fins sont ouvertes (shakira / cinéma)
+    // ou toutes deux fermées (frappe / cape) : « shakira » / « table » ne sonne pas comme une rime
+    return Math.abs(a - b) === 1 && vowel(wa) === vowel(wb) && Boolean(wa.coda) === Boolean(wb.coda);
+  };
+  const endOK = new Array(seq.length).fill(false);
+  for (let a = 0; a < seq.length; a++) {
+    for (let b = Math.max(0, a - WINDOW); b <= Math.min(seq.length - 1, a + WINDOW); b++) {
+      if (b === a || seq[a].group !== seq[b].group) continue;
+      if (rhymesWith(a, b)) { endOK[a] = true; break; }
+    }
+  }
+
+  // 2. Échos internes : un mot qui reprend la rime de fin de sa ligne ou d'une voisine
+  for (let a = 0; a < seq.length; a++) {
+    const words = seq[a].line.words;
+    const targets = new Map();                                   // clé de rime → fin de ligne visée
+    for (let b = Math.max(0, a - 1); b <= Math.min(seq.length - 1, a + 1); b++) {
+      if (seq[a].group !== seq[b].group) continue;
+      if (b !== a && !endOK[b]) continue;                        // une voisine ne compte que si elle rime vraiment
+      if (key(ends[b])) targets.set(key(ends[b]), b);
+    }
+    let echoed = false;
+    words.slice(0, -1).forEach((w) => {
+      if (w.isStop || !key(w)) return;
+      if (targets.has(key(w)) && w.lemma !== ends[targets.get(key(w))].lemma) {
+        mark(w, 'echo');
+        if (targets.get(key(w)) === a) echoed = true;
+      }
+    });
+    if (echoed) endOK[a] = true;                                 // la fin rime au moins avec l'intérieur de sa ligne
+
+    // deux mots pleins de la ligne qui riment pleinement entre eux (avec consonne finale, ou sur deux syllabes)
+    const inner = words.slice(0, -1).filter((w) => !w.isStop && key(w));
+    for (let i = 0; i < inner.length; i++) {
+      for (let j = i + 1; j < inner.length; j++) {
+        const x = inner[i], y = inner[j];
+        if (x.lemma === y.lemma || key(x) !== key(y)) continue;
+        const rich = x.coda || (x.vowels.length > 1 && y.vowels.length > 1 && x.vowels.at(-2) === y.vowels.at(-2));
+        if (rich) { mark(x, 'echo'); mark(y, 'echo'); }
+      }
+    }
+  }
+
+  seq.forEach(({ line }, a) => {
+    if (endOK[a]) { mark(ends[a], 'end'); line.rhymeCls = vowel(ends[a]); }
+  });
+
+  // 3. Chaînes d'assonance dans une ligne
+  for (const { line } of seq) {
+    const byVowel = new Map();
+    for (const w of line.words) {
+      if (w.isStop || !vowel(w)) continue;
+      if (!byVowel.has(vowel(w))) byVowel.set(vowel(w), new Map());
+      byVowel.get(vowel(w)).set(w.lemma, w);
+    }
+    for (const ws of byVowel.values()) if (ws.size >= 3) ws.forEach((w) => mark(w, 'chain'));
+  }
 }

@@ -127,3 +127,32 @@ test('répétitions serrées : « dans chaque » ×3, mots outils compris', asyn
   assert.deepEqual(rep(1), [], 'rien de répété');
   assert.ok(r.lines[0].words.find((w) => w.text === 'dans').isStop, '« dans » reste un mot outil');
 });
+
+test('mode Essentiel : seulement ce qui est fait pour rimer', async () => {
+  const { analyzeText } = await import('../js/engine/analyzer.js');
+  const r = analyzeText("t'as vu le temps passer sans faire de bruit\nmoi j'ai tracé ma route au fond de la nuit\nj'suis le chat qui rate le rat, elle danse sur shakira\nle stylo danse sur la table", { mode: 'essentiel' });
+  const key = (li, w) => r.lines[li].words.find((x) => x.text === w).syls.at(-1).key;
+  assert.equal(key(0, 'bruit'), 'end', 'bruit / nuit : rime de fin');
+  assert.equal(key(1, 'nuit'), 'end');
+  assert.equal(key(2, 'rat'), 'echo', '« rat » répond à « shakira » dans la ligne');
+  assert.equal(key(2, 'shakira'), 'end');
+  assert.equal(key(0, 'temps'), null, 'une voyelle qui a un écho par hasard ne s\'affiche pas');
+  assert.equal(key(3, 'table'), null, 'fin de ligne sans rime');
+  assert.equal(r.lines[0].rhymeCls, 'i');
+});
+
+test('allitération en tête de mot (pas un « s » qui traîne au milieu)', async () => {
+  const { analyzeText } = await import('../js/engine/analyzer.js');
+  const allit = (t) => analyzeText(t, { mode: 'essentiel' }).lines.flatMap((l) => l.words.flatMap((w) => w.cons.filter((c) => c.allit).map(() => w.text)));
+  assert.deepEqual(allit('personne, perf, presque sans père'), ['personne', 'perf', 'presque', 'père']);
+  assert.deepEqual(allit("j'suis le chat qui rate le rat, elle danse sur shakira"), []);
+  assert.deepEqual(allit("j'suis pas d'ici, j'ai grandi dans le décor, couleur d'or"), [], "le d de « d'ici » est l'article");
+});
+
+test('répétition serrée prioritaire : « le jour, mais le jour »', async () => {
+  const { analyzeText } = await import('../js/engine/analyzer.js');
+  const { markRepetitions } = await import('../js/engine/repetition.js');
+  const r = analyzeText("j'attends le jour, mais le jour me fuit");
+  markRepetitions(r.lines);
+  assert.deepEqual(r.lines[0].words.filter((w) => w.rep === 'local').map((w) => w.text), ['le', 'jour', 'le', 'jour']);
+});

@@ -473,7 +473,7 @@ $$('#segMode button').forEach((b) => b.addEventListener('click', () => setSettin
 /* Légende des couleurs (assonances) */
 $('#legend').innerHTML = ['a', 'e', 'E', 'i', 'o', 'u', 'y', 'eu', 'an', 'in', 'on', 'wa']
   .map((c) => `<span class="chip"><span class="dot" style="--vc: var(--v-${c})"></span>${CLASS_LABEL[c]}</span>`).join('')
-  + '<span class="chip muted">· fond = assonance · cadre fin = rime de fin · gros cadre de même couleur = rime multisyllabique · contour d\'une lettre = allitération · pointillés = répétition</span>';
+  + '<span class="chip muted">· fond plein = rime de fin · fond moyen = écho dans la ligne · fond léger = assonance voulue · cadre = rime sur plusieurs syllabes · contour de lettre = allitération · pointillés = répétition</span>';
 
 /* ====================== Raccourcis clavier ====================== */
 window.addEventListener('keydown', (e) => {

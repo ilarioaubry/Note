@@ -8,6 +8,7 @@
 import { escapeHTML } from '../utils/dom.js';
 import { beatMarkers } from '../engine/analyzer.js';
 import { FAMILY } from '../engine/consonance.js';
+import { matchClass } from '../engine/phonetics.js';
 
 export function createEditor(root, { onInput, onCaret }) {
   const scroller = root;                       // .editor : SEUL élément qui défile (textarea, calque, gouttière et badges bougent ensemble, sans JS)
@@ -82,8 +83,9 @@ export function createEditor(root, { onInput, onCaret }) {
     if (!w.syls.length) return html + escapeHTML(w.text);
     // Consonnes vraiment marquées (allitérations) : un contour autour des lettres, par-dessus la couleur des voyelles
     const fam = new Array(w.text.length).fill(null);
+    const essentiel = opts.mode === 'essentiel';
     if (opts.xray && opts.cons) {
-      for (const c of w.cons) if (c.strong) for (let i = c.s; i < c.e; i++) fam[i] ??= FAMILY[c.ph] ?? 'k';
+      for (const c of w.cons) if (essentiel ? c.allit : c.strong) for (let i = c.s; i < c.e; i++) fam[i] ??= FAMILY[c.ph] ?? 'k';
     }
     const inner = (a, b) => {
       let out = '';
@@ -99,9 +101,17 @@ export function createEditor(root, { onInput, onCaret }) {
     for (const sy of w.syls) {
       const attrs = [];
       const cls = ['s'];
-      if (opts.xray && sy.hl) attrs.push(`data-v="${sy.hl}"`);
-      if (opts.xray && sy.rich) cls.push('rich');
-      if (opts.xray && sy.endRhyme) cls.push('end');
+      if (essentiel) {
+        // Seulement ce qui est fait pour rimer ; l'intensité dit le rôle (fin > écho > chaîne)
+        const v = sy.key || sy.multi !== null ? (sy.hl ?? matchClass(sy.cls, opts.strict)) : null;
+        if (opts.xray && v && v !== 'schwa') attrs.push(`data-v="${v}"`);
+        if (opts.xray && sy.key) cls.push(`k-${sy.key}`);
+        if (opts.xray && sy.multi !== null && !sy.key) cls.push('k-multi');
+      } else {
+        if (opts.xray && sy.hl) attrs.push(`data-v="${sy.hl}"`);
+        if (opts.xray && sy.rich) cls.push('rich');
+        if (opts.xray && sy.endRhyme) cls.push('end');
+      }
       if (opts.xray && sy.occ) attrs.push(`data-occ="${sy.occ}"`);
       html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${inner(sy.start, sy.end)}</span>`;
     }
@@ -116,7 +126,9 @@ export function createEditor(root, { onInput, onCaret }) {
     let pos = 0;
     line.words.forEach((w, i) => {
       html += escapeHTML(line.text.slice(pos, w.start));
-      const rep = opts.reps && w.rep ? ` rep" data-rep="${w.rep}` : '';
+      // Essentiel : seulement les répétitions serrées et les mots pleins qui reviennent 3 fois ou plus
+      const showRep = opts.reps && w.rep && (opts.mode !== 'essentiel' || w.rep === 'local' || w.rep === 'section3');
+      const rep = showRep ? ` rep" data-rep="${w.rep}` : '';
       html += `<span class="w${rep}">${wordHTML(w, opts, beats?.get(i))}</span>`;
       pos = w.end;
     });
@@ -181,9 +193,11 @@ export function createEditor(root, { onInput, onCaret }) {
       `<div class="ln${l.isMeta ? ' meta' : ''}${i === current ? ' current' : ''}">${lineHTML(l, opts)}</div>`).join('');
     gutter.innerHTML = lines.map((_, i) => `<div${i === current ? ' class="current"' : ''}>${i + 1}</div>`).join('');
     badges.innerHTML = lines.map((l) => {
+      // pastille de la couleur de la rime de fin quand la ligne rime vraiment
       if (l.isMeta || l.isEmpty || !l.words.length) return '<div></div>';
       const tip = l.reference !== null ? `Réf. ${l.reference} syllabes` : 'Première ligne du bloc';
-      return `<div><span class="badge ${l.status}" title="${tip}">${l.syllables}</span></div>`;
+      const rh = opts.xray && l.rhymeCls ? ` rh" data-v="${l.rhymeCls}` : '';
+      return `<div><span class="badge ${l.status}${rh}" title="${tip}">${l.syllables}</span></div>`;
     }).join('');
 
     lineEls = [...backdrop.querySelectorAll(':scope > .ln')];

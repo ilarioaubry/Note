@@ -34,7 +34,7 @@ export const saveCurrentId = (id) => write(KEY_CURRENT, id);
 
 export const DEFAULT_SETTINGS = {
   xray: true,          // Rayon X phonétique
-  mode: 'assonances',  // 'assonances' | 'rimes'
+  mode: 'essentiel',   // 'essentiel' (ce qui est fait pour rimer) | 'assonances' (tout) | 'consonnes'
   grid: false,         // Vue grille 4/4
   reps: true,          // Surlignage des répétitions
   elision: true,       // e caducs internes non comptés
@@ -43,7 +43,13 @@ export const DEFAULT_SETTINGS = {
   click: false,        // clic du métronome
 };
 
-export const loadSettings = () => ({ ...DEFAULT_SETTINGS, ...read(KEY_SETTINGS, {}) });
+export const loadSettings = () => {
+  const s = { ...DEFAULT_SETTINGS, ...read(KEY_SETTINGS, {}) };
+  // Passage au mode Essentiel (une seule fois) ; l'ancien mode « Rimes » n'existe plus
+  if (!s.essentielV1) { s.mode = 'essentiel'; s.essentielV1 = true; }
+  if (s.mode === 'rimes') s.mode = 'essentiel';
+  return s;
+};
 export const saveSettings = (s) => write(KEY_SETTINGS, s);
 
 /* ---------- Banque d'idées : [{ id, text, createdAt }] ---------- */

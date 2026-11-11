@@ -125,6 +125,23 @@ ne montrer qu'un sujet à la fois : Textes → Textes · Projet · Profil ; Anal
 
 ### Ce qui se voit dans le texte
 
+Trois modes (Analyse → Réglages) : **Essentiel** (par défaut) ne montre que ce qui est fait pour rimer ;
+**Tout** montre chaque voyelle qui a un écho (pour explorer) ; **Consonnes** montre tous les sons
+consonnes qui reviennent. En Essentiel (`detectIntent` dans `analyzer.js`) :
+
+- **rime de fin** (fond plein) : deux fins de ligne à 4 lignes d'écart qui riment pleinement (voyelle +
+  consonnes finales), ou qui se suivent avec la même voyelle et des fins toutes deux ouvertes ou fermées ;
+- **écho** (fond moyen) : un mot plein qui reprend dans la ligne la rime de fin de sa ligne ou d'une voisine
+  (« le chat qui rate le **rat** … shaki**ra** »), ou deux mots pleins de la ligne qui riment pleinement ;
+- **chaîne d'assonance** (fond léger) : la même voyelle tonique sur 3 mots pleins de la ligne ;
+- **multi** (cadre) : rime sur plusieurs syllabes ;
+- **allitération** (contour de lettre) : même son en tête de 4 mots pleins ou plus, sur une ou deux lignes ;
+- **répétition** (pointillés) : tournures et mots répétés de près, mots pleins répétés 3 fois dans la section ;
+- **pastille** dans la marge : couleur de la rime de fin quand la ligne rime vraiment.
+
+Sur un couplet type, on passe de ~37 % de syllabes colorées (Tout) à ~20 % (Essentiel), et de 26 à 8 contours.
+
+
 | Marque | Sens |
 |---|---|
 | Fond coloré d'une syllabe | assonance / rime (couleur = voyelle) |
