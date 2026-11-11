@@ -74,14 +74,46 @@ export function repeatsInRange(lines, { start, end }) {
   return map;
 }
 
-/** Marque `w.rep = true` sur les mots répétés de chaque section. */
+const norm = (w) => w.text.toLowerCase().replace(/’/g, "'");
+
+/**
+ * Répétitions serrées, visibles même sur les mots outils :
+ *  - une tournure de deux mots répétée dans la ligne ou la suivante (« dans chaque … dans chaque ») ;
+ *  - un mot de 4 lettres ou plus répété 3 fois dans la ligne (« chaque … chaque … chaque »).
+ * Marque `w.rep = 'local'`.
+ */
+export function markLocalRepeats(lines) {
+  const lyric = lines.filter((l) => !l.isMeta && !l.isEmpty && l.words.length);
+  for (let k = 0; k < lyric.length; k++) {
+    const pair = [lyric[k], lyric[k + 1]].filter(Boolean);
+    // tournures de deux mots, au sein d'une même ligne
+    const bigrams = new Map();
+    for (const l of pair) {
+      for (let i = 0; i + 1 < l.words.length; i++) {
+        const a = l.words[i], b = l.words[i + 1];
+        if (Math.max(a.text.length, b.text.length) < 4) continue;          // « de la », « je suis » : trop banal
+        const key = `${norm(a)} ${norm(b)}`;
+        if (!bigrams.has(key)) bigrams.set(key, []);
+        bigrams.get(key).push([a, b]);
+      }
+    }
+    for (const occ of bigrams.values()) if (occ.length >= 2) occ.flat().forEach((w) => { w.rep ||= 'local'; });
+    // mot répété 3 fois dans une même ligne
+    const counts = new Map();
+    for (const w of lyric[k].words) if (w.text.length >= 4) counts.set(norm(w), (counts.get(norm(w)) ?? 0) + 1);
+    for (const w of lyric[k].words) if ((counts.get(norm(w)) ?? 0) >= 3) w.rep ||= 'local';
+  }
+}
+
+/** Marque `w.rep` sur les mots pleins répétés de chaque section et sur les répétitions serrées. */
 export function markRepetitions(lines) {
   const sections = sectionsOf(lines);
   for (const sec of sections) {
     const reps = repeatsInRange(lines, sec);
     for (let i = sec.start; i <= sec.end; i++) {
-      for (const w of lines[i].words) if (reps.has(w.lemma)) w.rep = true;
+      for (const w of lines[i].words) if (reps.has(w.lemma)) w.rep = 'section';
     }
   }
+  markLocalRepeats(lines);
   return sections;
 }

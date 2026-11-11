@@ -102,6 +102,7 @@ export function createEditor(root, { onInput, onCaret }) {
       if (opts.xray && sy.hl) attrs.push(`data-v="${sy.hl}"`);
       if (opts.xray && sy.rich) cls.push('rich');
       if (opts.xray && sy.endRhyme) cls.push('end');
+      if (opts.xray && sy.occ) attrs.push(`data-occ="${sy.occ}"`);
       html += `<span class="${cls.join(' ')}" ${attrs.join(' ')}>${inner(sy.start, sy.end)}</span>`;
     }
     return html;
@@ -115,7 +116,8 @@ export function createEditor(root, { onInput, onCaret }) {
     let pos = 0;
     line.words.forEach((w, i) => {
       html += escapeHTML(line.text.slice(pos, w.start));
-      html += `<span class="w">${wordHTML(w, opts, beats?.get(i))}</span>`;
+      const rep = opts.reps && w.rep ? ` rep" data-rep="${w.rep}` : '';
+      html += `<span class="w${rep}">${wordHTML(w, opts, beats?.get(i))}</span>`;
       pos = w.end;
     });
     html += escapeHTML(line.text.slice(pos));
@@ -132,6 +134,42 @@ export function createEditor(root, { onInput, onCaret }) {
       if (gutterEls[i]) gutterEls[i].style.height = `${h}px`;
       if (badgeEls[i]) badgeEls[i].style.height = `${h}px`;
     });
+    drawMarks();
+  }
+
+  /**
+   * Cadres des rimes multisyllabiques : un cadre par passage (« chat qui rate », « shakira »),
+   * de la même couleur pour tous les passages qui riment ensemble. Mesurés après le rendu,
+   * un cadre par rangée si le passage passe à la ligne.
+   */
+  function drawMarks() {
+    backdrop.querySelector('.ed-marks')?.remove();
+    const els = backdrop.querySelectorAll('.s[data-occ]');
+    if (!els.length) return;
+    const base = backdrop.getBoundingClientRect();
+    const byOcc = new Map();
+    for (const el of els) {
+      const k = el.dataset.occ;
+      if (!byOcc.has(k)) byOcc.set(k, []);
+      byOcc.get(k).push(el.getBoundingClientRect());
+    }
+    let html = '';
+    for (const [occ, rects] of byOcc) {
+      const group = Number(occ.split('.')[0]);
+      const rows = [];
+      for (const r of rects) {
+        const row = rows.find((x) => Math.abs(x.top - r.top) < 4);
+        if (row) { row.left = Math.min(row.left, r.left); row.right = Math.max(row.right, r.right); row.bottom = Math.max(row.bottom, r.bottom); }
+        else rows.push({ top: r.top, bottom: r.bottom, left: r.left, right: r.right });
+      }
+      for (const r of rows) {
+        html += `<span class="mk" data-m="${group % 6}" style="left:${r.left - base.left - 3}px;top:${r.top - base.top - 2}px;width:${r.right - r.left + 6}px;height:${r.bottom - r.top + 4}px"></span>`;
+      }
+    }
+    const layer = document.createElement('div');
+    layer.className = 'ed-marks';
+    layer.innerHTML = html;
+    backdrop.prepend(layer);
   }
   new ResizeObserver(() => matchHeights()).observe(root.querySelector('.ed-main'));
 
@@ -148,7 +186,7 @@ export function createEditor(root, { onInput, onCaret }) {
       return `<div><span class="badge ${l.status}" title="${tip}">${l.syllables}</span></div>`;
     }).join('');
 
-    lineEls = [...backdrop.children];
+    lineEls = [...backdrop.querySelectorAll(':scope > .ln')];
     gutterEls = [...gutter.children];
     badgeEls = [...badges.children];
     matchHeights();

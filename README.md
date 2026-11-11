@@ -123,6 +123,16 @@ ne montrer qu'un sujet à la fois : Textes → Textes · Projet · Profil ; Anal
   forme d'onde (clic ou glisser = se placer, Maj+glisser = boucle), A / B / ⟲, boucles 4m / 8m calées sur le
   BPM, `1↓` pour caler le temps 1, TAP tempo, métronome visuel + clic sonore.
 
+### Ce qui se voit dans le texte
+
+| Marque | Sens |
+|---|---|
+| Fond coloré d'une syllabe | assonance / rime (couleur = voyelle) |
+| Fin cadre de couleur | rime de fin de ligne |
+| **Gros cadre, même couleur sur plusieurs passages** | rime multisyllabique : « chat qui rate » ↔ « shakira » (a‑i‑a) |
+| Contour fin d'une lettre | consonne d'une allitération vraiment marquée |
+| Pointillés autour d'un mot | répétition : tournure répétée (« dans chaque » ×3), mot répété 3 fois dans la ligne (même un mot outil), ou mot plein répété dans la section (pointillés plus discrets) |
+
 ### Consonances et allitérations
 
 En modes **Assonances** et **Rimes**, les consonnes d'une allitération **vraiment marquée** sont entourées

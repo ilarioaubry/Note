@@ -780,3 +780,15 @@ button.pill.theme { cursor: pointer; }
 .goal-mini.fait .dot { background: var(--ok); border-color: var(--ok); }
 .goal-mini.partiel .dot { border-color: var(--warn); }
 .goal-mini.fait { color: var(--text-dim); }
+
+/* ---------- Rimes multisyllabiques : un cadre par passage, même couleur pour ceux qui riment ensemble ---------- */
+.ed-backdrop-inner { position: relative; }
+.ed-marks { position: absolute; inset: 0; pointer-events: none; }
+.mk { position: absolute; border-radius: 7px; border: 2px solid var(--mc); box-shadow: 0 0 10px color-mix(in srgb, var(--mc) 35%, transparent); }
+/* blanc et or d'abord : distincts des contours fins de consonnes (bleu = s, rose = p…) */
+.mk[data-m="0"] { --mc: var(--m-0); } .mk[data-m="1"] { --mc: var(--m-4); } .mk[data-m="2"] { --mc: var(--m-3); }
+.mk[data-m="3"] { --mc: var(--m-2); } .mk[data-m="4"] { --mc: var(--m-5); } .mk[data-m="5"] { --mc: var(--m-1); }
+
+/* ---------- Répétitions : cadre en pointillés autour du mot ---------- */
+.w.rep { border-radius: 4px; outline: 1.5px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 1px; }
+.w.rep[data-rep="section"] { outline-color: color-mix(in srgb, var(--text) 32%, transparent); }

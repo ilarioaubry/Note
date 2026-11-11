@@ -33,14 +33,17 @@ function analyzeLine(text, index, opts) {
     for (const tok of tokenize(text)) {
       const a = analyzeWord(tok.text, opts);
       const lemma = lemmaOf(tok.text);
+      const raw = normalize(tok.text).split("'").filter(Boolean).pop() ?? '';
       words.push({
         ...tok, ...a,
         lemma,
-        isStop: isStopword(lemma) || lemma.length < 2,
+        // « dans » → lemme « dan » : on teste aussi la forme écrite, sinon le mot outil passe à travers
+        isStop: isStopword(lemma) || isStopword(raw) || lemma.length < 2,
         isClitic: isClitic(lemma) || isClitic(normalize(tok.text)),
         sylStart: syl,
         // une entrée par syllabe prononcée : { start, end (dans le mot), cls, hl, rich, endRhyme, multi }
-        syls: syllabify(tok.text, opts).map((x) => ({ ...x, hl: null, rich: false, endRhyme: false, multi: null })),
+        // multi = groupe de rime multisyllabique, occ = passage précis (pour l'encadrer à l'écran)
+        syls: syllabify(tok.text, opts).map((x) => ({ ...x, hl: null, rich: false, endRhyme: false, multi: null, occ: null })),
         // consonnes prononcées : { s, e (lettres du mot), ph, hl } ; hl = fait partie d'une allitération / consonance
         cons: consonantsOf(tok.text).map((c) => ({ ...c, hl: false, strong: false })),
         rep: false,
@@ -155,6 +158,8 @@ function detectMultis(seq, o) {
         const span = s.slice(end - n + 1, end + 1);
         if (span.some((x) => x.cls === 'schwa')) continue;
         if (n === 2 && span[0].word.isStop) continue;              // évite « la nuit » / « la vie » partout
+        // au moins deux syllabes portées par des mots pleins (« chat qui rate » oui, « chaque paire dans » non)
+        if (n >= 3 && span.filter((x) => !x.word.isStop).length < 2) continue;
         const key = span.map((x) => x.cls).join('-');
         const text = [...new Set(span.map((x) => x.word))].map((w) => w.lemma).join(' ');
         if (!occ.has(key)) occ.set(key, []);
@@ -177,16 +182,16 @@ function detectMultis(seq, o) {
       const free = [...keep].filter((x) => !claimed[x.li].slice(x.start, x.end + 1).some(Boolean));
       if (free.length < 2) continue;
       const gid = groupId++;
-      for (const x of free) {
+      free.forEach((x, oi) => {
         for (let k = x.start; k <= x.end; k++) {
           claimed[x.li][k] = true;
           const sy = syls[x.li][k].syl;
           if (!sy) continue;
-          if (sy.multi === null) sy.multi = gid;
+          if (sy.multi === null) { sy.multi = gid; sy.occ = `${gid}.${oi}`; }
           if (!sy.hl) sy.hl = syls[x.li][k].cls;                 // chaque syllabe du multi prend la couleur de sa voyelle
           sy.rich = true;
         }
-      }
+      });
     }
   }
 }

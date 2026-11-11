@@ -105,3 +105,25 @@ test('projet : idées dites dans les sons validés, thèmes en attente', async (
 test('thèmes : « la nuit tombe » ne parle pas de la mort', () => {
   assert.ok(!detectThemes('le jour se lève et la nuit tombe sur mes rêves').some((t) => t.id === 'mort'));
 });
+
+test('multi « chat qui rate » ↔ « shakira » : un seul groupe, deux passages', async () => {
+  const { analyzeText } = await import('../js/engine/analyzer.js');
+  const r = analyzeText("des troue dans chaque paire, dans chaque personne dans chaque mii\nj'suis le chat qui rate le rat, elle danse sur shakira,");
+  const occ = new Map();
+  for (const l of r.lines) for (const w of l.words) for (const s of w.syls) if (s.occ) occ.set(s.occ, [...(occ.get(s.occ) ?? []), w.text]);
+  const passages = [...occ.values()].map((ws) => [...new Set(ws)].join(' '));
+  assert.ok(passages.includes('chat qui rate'), passages.join(' | '));
+  assert.ok(passages.includes('shakira'), passages.join(' | '));
+  assert.equal(new Set([...occ.keys()].map((k) => k.split('.')[0])).size, 1, 'les deux passages sont dans le même groupe');
+});
+
+test('répétitions serrées : « dans chaque » ×3, mots outils compris', async () => {
+  const { analyzeText } = await import('../js/engine/analyzer.js');
+  const { markRepetitions } = await import('../js/engine/repetition.js');
+  const r = analyzeText('des troue dans chaque paire, dans chaque personne dans chaque mii\nle jour se lève et la nuit tombe');
+  markRepetitions(r.lines);
+  const rep = (li) => r.lines[li].words.filter((w) => w.rep).map((w) => w.text);
+  assert.deepEqual(rep(0), ['dans', 'chaque', 'dans', 'chaque', 'dans', 'chaque']);
+  assert.deepEqual(rep(1), [], 'rien de répété');
+  assert.ok(r.lines[0].words.find((w) => w.text === 'dans').isStop, '« dans » reste un mot outil');
+});

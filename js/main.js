@@ -356,7 +356,7 @@ const analyze = rafThrottle(() => {
   const { settings: s } = state;
   state.analysis = analyzeText(editor.getText(), { elision: s.elision, strict: s.strict, mode: s.mode });
   state.sections = markRepetitions(state.analysis.lines);
-  editor.render(state.analysis, { xray: s.xray, grid: s.grid, mode: s.mode, cons: s.cons });
+  editor.render(state.analysis, { xray: s.xray, grid: s.grid, mode: s.mode, cons: s.cons, reps: s.reps });
   updateInspector();
   refreshSummary();
 });
@@ -452,7 +452,7 @@ function exportCurrent() {
 }
 
 /* ====================== Réglages / toggles ====================== */
-const TOGGLES = { tglXray: 'xray', tglCons: 'cons', tglGrid: 'grid', tglStrict: 'strict' };
+const TOGGLES = { tglXray: 'xray', tglCons: 'cons', tglReps: 'reps', tglGrid: 'grid', tglStrict: 'strict' };
 
 function syncToggles() {
   for (const [id, key] of Object.entries(TOGGLES)) $(`#${id}`).setAttribute('aria-pressed', String(!!state.settings[key]));
@@ -473,7 +473,7 @@ $$('#segMode button').forEach((b) => b.addEventListener('click', () => setSettin
 /* Légende des couleurs (assonances) */
 $('#legend').innerHTML = ['a', 'e', 'E', 'i', 'o', 'u', 'y', 'eu', 'an', 'in', 'on', 'wa']
   .map((c) => `<span class="chip"><span class="dot" style="--vc: var(--v-${c})"></span>${CLASS_LABEL[c]}</span>`).join('')
-  + '<span class="chip muted">· surligné = assonance · encadré = rime de fin · mode Consonnes : sons consonnes qui reviennent</span>';
+  + '<span class="chip muted">· fond = assonance · cadre fin = rime de fin · gros cadre de même couleur = rime multisyllabique · contour d\'une lettre = allitération · pointillés = répétition</span>';
 
 /* ====================== Raccourcis clavier ====================== */
 window.addEventListener('keydown', (e) => {
