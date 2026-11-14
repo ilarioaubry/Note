@@ -813,3 +813,21 @@ button.pill.theme { cursor: pointer; }
 
 /* cadres de multi plus doux */
 .mk { border-width: 1.5px; border-radius: 8px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--mc) 12%, transparent), 0 0 14px color-mix(in srgb, var(--mc) 30%, transparent); }
+
+/* ---------- Allitérations bien visibles (mode Essentiel) ---------- */
+/* tête de mot : lettre sur fond franc + anneau épais (dessiné hors de la lettre, sans décaler le texte) */
+.c.ring.head {
+  border-radius: 4px; background: color-mix(in srgb, var(--cc) 55%, transparent);
+  box-shadow: 0 0 0 2px var(--cc), 0 0 10px color-mix(in srgb, var(--cc) 55%, transparent);
+}
+/* le même son à l'intérieur des mots : fond plus léger, fin contour */
+.c.ring.inner { border-radius: 3px; background: color-mix(in srgb, var(--cc) 32%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cc) 80%, transparent); }
+/* étiquette du son dans la marge */
+.badge { position: relative; }
+.badge.has-al { display: inline-flex; align-items: center; gap: 3px; }
+.badge .al {
+  display: inline-block; min-width: 13px; height: 14px; padding: 0 3px; border-radius: 4px;
+  font: 700 10px/14px var(--font-ui); text-align: center; color: #0b0d10; background: var(--cc);
+}
+@media (max-width: 900px) { .ed-row { grid-template-columns: minmax(0, 1fr) 50px; } }
+.badge.rh.has-al { padding-left: 10px; }

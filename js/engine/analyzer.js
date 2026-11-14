@@ -58,6 +58,7 @@ function analyzeLine(text, index, opts) {
     signature: words.flatMap((w) => w.vowels),
     status: 'neutral', reference: null,
     cons: [],     // [{ ph, count }] : sons consonnes retenus dans cette ligne (rempli par detectConsonance)
+    allit: null,      // { ph, count } : son d'allitération dominant de la ligne (mode Essentiel)
     rhymeCls: null,   // voyelle de la rime de fin quand la ligne rime vraiment (pastille dans la marge)
   };
 }

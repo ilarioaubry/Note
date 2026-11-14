@@ -156,3 +156,13 @@ test('répétition serrée prioritaire : « le jour, mais le jour »', async () 
   markRepetitions(r.lines);
   assert.deepEqual(r.lines[0].words.filter((w) => w.rep === 'local').map((w) => w.text), ['le', 'jour', 'le', 'jour']);
 });
+
+test('texte en L : toute la texture du son est marquée, tête de mot en fort', async () => {
+  const { analyzeText } = await import('../js/engine/analyzer.js');
+  const r = analyzeText("l'alcool m'allume le long des lampadaires\nla lune luit sur les lignes", { mode: 'essentiel' });
+  const marks = (li) => r.lines[li].words.flatMap((w) => w.cons.filter((c) => c.allit).map((c) => `${w.text}:${c.allit}`));
+  assert.ok(marks(0).includes("l'alcool:head"), marks(0).join(' '));
+  assert.ok(marks(0).includes("m'allume:inner"), 'le l intérieur de « allume » compte aussi');
+  assert.ok(marks(0).includes('lampadaires:head'));
+  assert.deepEqual(r.lines[1].allit, { ph: 'l', count: 3 }, '« la lune luit sur les lignes » : 3 têtes suffisent dans une ligne aussi dense');
+});

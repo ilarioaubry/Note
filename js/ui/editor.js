@@ -7,7 +7,7 @@
  */
 import { escapeHTML } from '../utils/dom.js';
 import { beatMarkers } from '../engine/analyzer.js';
-import { FAMILY } from '../engine/consonance.js';
+import { FAMILY, consonantLabel } from '../engine/consonance.js';
 import { matchClass } from '../engine/phonetics.js';
 
 export function createEditor(root, { onInput, onCaret }) {
@@ -83,17 +83,21 @@ export function createEditor(root, { onInput, onCaret }) {
     if (!w.syls.length) return html + escapeHTML(w.text);
     // Consonnes vraiment marquées (allitérations) : un contour autour des lettres, par-dessus la couleur des voyelles
     const fam = new Array(w.text.length).fill(null);
+    const kind = new Array(w.text.length).fill('');
     const essentiel = opts.mode === 'essentiel';
     if (opts.xray && opts.cons) {
-      for (const c of w.cons) if (essentiel ? c.allit : c.strong) for (let i = c.s; i < c.e; i++) fam[i] ??= FAMILY[c.ph] ?? 'k';
+      for (const c of w.cons) {
+        if (!(essentiel ? c.allit : c.strong)) continue;
+        for (let i = c.s; i < c.e; i++) { fam[i] ??= FAMILY[c.ph] ?? 'k'; kind[i] ||= essentiel ? c.allit : 'strong'; }
+      }
     }
     const inner = (a, b) => {
       let out = '';
       for (let i = a; i < b;) {
         let j = i + 1;
-        while (j < b && fam[j] === fam[i]) j++;
+        while (j < b && fam[j] === fam[i] && kind[j] === kind[i]) j++;
         const t = escapeHTML(w.text.slice(i, j));
-        out += fam[i] ? `<span class="c ring" data-c="${fam[i]}">${t}</span>` : t;
+        out += fam[i] ? `<span class="c ring ${kind[i]}" data-c="${fam[i]}">${t}</span>` : t;
         i = j;
       }
       return out;
@@ -197,7 +201,10 @@ export function createEditor(root, { onInput, onCaret }) {
       if (l.isMeta || l.isEmpty || !l.words.length) return '<div></div>';
       const tip = l.reference !== null ? `Réf. ${l.reference} syllabes` : 'Première ligne du bloc';
       const rh = opts.xray && l.rhymeCls ? ` rh" data-v="${l.rhymeCls}` : '';
-      return `<div><span class="badge ${l.status}${rh}" title="${tip}">${l.syllables}</span></div>`;
+      // étiquette du son allitéré (« l ») quand la ligne en porte un
+      const al = opts.xray && opts.cons && opts.mode === 'essentiel' && l.allit
+        ? `<span class="al" data-c="${FAMILY[l.allit.ph] ?? 'k'}" title="Allitération en « ${consonantLabel(l.allit.ph)} » (×${l.allit.count})">${escapeHTML(consonantLabel(l.allit.ph))}</span>` : '';
+      return `<div><span class="badge ${l.status}${rh}${al ? ' has-al' : ''}" title="${tip}">${al}${l.syllables}</span></div>`;
     }).join('');
 
     lineEls = [...backdrop.querySelectorAll(':scope > .ln')];

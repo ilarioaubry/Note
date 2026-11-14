@@ -138,37 +138,59 @@ export function detectConsonance(seq) {
 }
 
 /**
- * Allitération au sens strict, pour le mode Essentiel : le même son en TÊTE de mot
- * (« Personne, Perf, Presque… Père »), sur au moins 4 mots pleins différents dans une ou deux lignes,
- * et improbable par hasard. Les consonnes au milieu des mots ne comptent pas : c'est ce qui sépare
- * une allitération voulue d'un « s » qui traîne partout. Marque `occ.allit = true`.
+ * Allitération pour le mode Essentiel.
+ *
+ * Reconnaissance : le même son en tête de mot plein, « tête » au sens de ce qu'on entend
+ * (« l'alcool » commence par [l], « d'or » par [d]) :
+ *   - au moins 4 mots différents sur une ou deux lignes, et improbable par hasard ;
+ *   - ou au moins 3 dans une même ligne s'ils font au moins la moitié des têtes de mots pleins
+ *     (« la lune luit sur les lignes »).
+ * Affichage : une fois le son reconnu, TOUTES ses occurrences dans les mots pleins de la fenêtre
+ * sont marquées — en tête de mot (`allit = 'head'`, marquage fort) et à l'intérieur (`allit = 'inner'`) —
+ * pour que toute la texture se voie (« l'alcool m'allume… elle est belle »).
+ * Une consonne au milieu des mots ne déclenche jamais seule : c'est ce qui écarte le « s » qui traîne.
  */
 const ALLIT_MIN = 4;
+const ALLIT_LINE_MIN = 3;
 function detectAlliteration(seq, windows) {
   for (const idx of windows) {
     const heads = [];
     for (const i of idx) {
       for (const w of seq[i].line.words) {
         if (w.isStop || !w.cons.length) continue;
-        // tête du mot porteur : après l'élision (« j'suis » → s, « d'ici » → rien : le d est l'article)
-        const start = Math.max(w.text.lastIndexOf("'"), w.text.lastIndexOf('’')) + 1;
-        const first = w.cons.find((c) => c.s >= start);
-        if (first && first.s === start) heads.push({ w, o: first });
+        const first = w.cons[0];
+        if (first.s === 0) heads.push({ w, o: first });          // le mot (élision comprise) s'ouvre sur cette consonne
       }
     }
-    const n = heads.length;
-    if (n < ALLIT_MIN) continue;
     const byPh = new Map();
     for (const h of heads) {
       if (!byPh.has(h.o.ph)) byPh.set(h.o.ph, []);
       byPh.get(h.o.ph).push(h);
     }
+    const contentWords = idx.flatMap((i) => seq[i].line.words.filter((w) => !w.isStop)).length;
     for (const [ph, list] of byPh) {
-      const lemmas = new Set(list.map((h) => h.w.lemma));
-      if (lemmas.size < ALLIT_MIN) continue;
+      const lemmas = new Set(list.map((h) => h.w.lemma)).size;
       const p = (FREQ[ph] ?? 1) / FREQ_SUM;
-      if (poissonTail(lemmas.size, n * p * 1.6) > 0.05) continue;   // les débuts de mots sont plus souvent consonantiques
-      for (const h of list) h.o.allit = true;
+      const wide = lemmas >= ALLIT_MIN && poissonTail(lemmas, Math.max(heads.length, contentWords) * p * 1.6) <= 0.05;
+      const dense = idx.length === 1 && lemmas >= ALLIT_LINE_MIN && lemmas / Math.max(1, contentWords) >= 0.5;
+      if (!wide && !dense) continue;
+      for (const i of idx) {
+        for (const w of seq[i].line.words) {
+          if (w.isStop) continue;
+          w.cons.forEach((c, k) => {
+            if (c.ph !== ph) return;
+            const kind = k === 0 && c.s === 0 ? 'head' : 'inner';
+            if (c.allit !== 'head') c.allit = kind;
+          });
+        }
+      }
     }
+  }
+  // Son dominant par ligne (étiquette dans la marge)
+  for (const { line } of seq) {
+    const counts = new Map();
+    for (const w of line.words) for (const c of w.cons) if (c.allit) counts.set(c.ph, (counts.get(c.ph) ?? 0) + 1);
+    const best = [...counts].sort((a, b) => b[1] - a[1])[0];
+    line.allit = best ? { ph: best[0], count: best[1] } : null;
   }
 }

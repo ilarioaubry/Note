@@ -114,6 +114,7 @@ const RAW_RULES = [
 
   // — i / y / u (semi-voyelles) —
   ['^ill', 'il'],                                           // illusion
+  ['(?<=^(?:v|m|tranqu|pup|bac|osc|dist|l))ill', 'il'],     // ville, mille, village, tranquille
   [`(?<=[${C}])ill`, 'ij'],                                 // fille, famille
   [`(?<=${CLUSTER})[iy](?=[${V}])`, 'ij'],                  // crier, oublier
   [`[iy](?=[${V}])${NOT_MUTE}`, 'j'],                       // pied, rien, yeux

@@ -135,7 +135,10 @@ consonnes qui reviennent. En Essentiel (`detectIntent` dans `analyzer.js`) :
   (« le chat qui rate le **rat** … shaki**ra** »), ou deux mots pleins de la ligne qui riment pleinement ;
 - **chaîne d'assonance** (fond léger) : la même voyelle tonique sur 3 mots pleins de la ligne ;
 - **multi** (cadre) : rime sur plusieurs syllabes ;
-- **allitération** (contour de lettre) : même son en tête de 4 mots pleins ou plus, sur une ou deux lignes ;
+- **allitération** : même son en tête de mot plein (élision comprise : « l'alcool ») — 4 mots sur une ou deux
+  lignes, ou 3 dans une ligne s'ils font la moitié des têtes de mots. Une fois le son reconnu, toutes ses
+  occurrences sont marquées : en tête de mot (fond franc + anneau) et à l'intérieur (fond léger), avec
+  une étiquette du son (« l ») à côté du nombre de syllabes ;
 - **répétition** (pointillés) : tournures et mots répétés de près, mots pleins répétés 3 fois dans la section ;
 - **pastille** dans la marge : couleur de la rime de fin quand la ligne rime vraiment.
 
