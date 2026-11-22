@@ -2,7 +2,7 @@
 
 IDE local (100 % navigateur, zéro dépendance, zéro build) pour écrire du rap français :
 compte de syllabes **parlées**, assonances / rimes / multis en temps réel, détecteur de
-répétitions, Radar à Tics et lecteur d'instru avec boucle A/B.
+répétitions et Radar à Tics.
 
 ## Lancer
 
@@ -17,7 +17,7 @@ npm test               # tests du moteur phonétique (Node ≥ 18, aucune instal
 ## Architecture
 
 ```
-index.html                 Squelette 3 colonnes + barre audio
+index.html                 Squelette 3 colonnes
 css/styles.css             Thème studio sombre, couleurs des classes vocaliques (variables CSS)
 js/
 ├── main.js                État de l'app + câblage des modules
@@ -53,7 +53,6 @@ js/
 │   ├── understanding.js   Prononciation perso, « ça sonne avec », repérage local (sans IA)
 │   ├── ideas.js           Onglet Idées (banque d'idées)
 │   ├── overview.js        Panneau Projet + « Ton vocabulaire »
-│   └── player.js          Audio local, forme d'onde, A/B, 4/8 mesures, tap tempo, métronome
 ├── store/storage.js       localStorage (projets, réglages)
 └── utils/dom.js           debounce, rafThrottle, escape…
 tests/phonetics.test.js    Tests node:test
@@ -119,9 +118,6 @@ ne montrer qu'un sujet à la fois : Textes → Textes · Projet · Profil ; Anal
 - **Analyse** : réglages d'affichage (Rayon X, Assonances/Rimes/Consonnes, Grille 4/4, é ≠ è), signature vocalique de la
   ligne courante `[a - i - an - é]`, phonétique, mots répétés dans la section (16 mesures max, badge `TIC`
   s'ils sont dans ton top) et boîte à rimes (un clic insère le mot au curseur).
-- **Bas** : import d'instru par glisser-déposer ou bouton (via `URL.createObjectURL`, rien n'est envoyé),
-  forme d'onde (clic ou glisser = se placer, Maj+glisser = boucle), A / B / ⟲, boucles 4m / 8m calées sur le
-  BPM, `1↓` pour caler le temps 1, TAP tempo, métronome visuel + clic sonore.
 
 ### Ce qui se voit dans le texte
 
@@ -190,8 +186,9 @@ On peut aussi glisser un `.txt` sur la fenêtre pour l'importer comme nouveau te
 
 ## Sur téléphone
 
-Un écran à la fois, barre d'onglets en bas. Le bouton ⋯ du lecteur ouvre A/B, 8 mesures, tap tempo et
-métronome. Quand le clavier s'ouvre, le lecteur et les onglets se masquent pour laisser la place au texte.
+Un écran à la fois, barre d'onglets flottante en verre en bas. Quand le clavier s'ouvre, les onglets se masquent
+pour laisser la place au texte. Thème « liquid glass » : bleu roi #1A00B0, formes orange #FF4A33 à trame jaune,
+accent jaune #FFD83A (palette du mood board Studio Hachi).
 Le `manifest.webmanifest` permet d'« Ajouter à l'écran d'accueil » (plein écran, icône dédiée).
 
 ## L'IA : le moteur de compréhension

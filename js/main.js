@@ -23,7 +23,6 @@ import * as store from './store/storage.js';
 import { createEditor } from './ui/editor.js';
 import { createSidebar } from './ui/sidebar.js';
 import { createInspector } from './ui/inspector.js';
-import { createPlayer, isAudioFile } from './ui/player.js';
 import { createIdeasView } from './ui/ideas.js';
 import { createOverview, ALL_ALBUMS } from './ui/overview.js';
 import { createUnderstanding } from './ui/understanding.js';
@@ -123,19 +122,6 @@ const inspector = createInspector({
   ipa: $('#insIpa'), rhyme: $('#insRhyme'), cons: $('#insCons'), reps: $('#insReps'), section: $('#insSection'),
   rhymeInput: $('#rhymeInput'), rhymeResults: $('#rhymeResults'),
 }, { onInsert: (w) => { setView('write'); editor.insertAtCursor(w); } });
-
-const player = createPlayer({
-  audio: $('#audio'), btnLoad: $('#btnLoad'), fileInput: $('#fileInput'), trackName: $('#trackName'),
-  btnPlay: $('#btnPlay'), time: $('#time'), canvas: $('#wave'), waveWrap: $('#waveWrap'),
-  btnA: $('#btnA'), btnB: $('#btnB'), btnLoop: $('#btnLoop'), btnBars4: $('#btnBars4'), btnBars8: $('#btnBars8'),
-  loopInfo: $('#loopInfo'), btnTap: $('#btnTap'), bpmDisplay: $('#bpmDisplay'), metro: $('#metro'),
-  barInfo: $('#barInfo'), btnDownbeat: $('#btnDownbeat'), btnMetro: $('#btnMetro'), btnClick: $('#btnClick'),
-}, {
-  getBpm: () => current()?.bpm || 90,
-  setBpm: (bpm) => { setProjectField('bpm', Math.min(240, Math.max(40, bpm))); sidebar.syncEdit(current()); },
-  getOffset: () => current()?.offset || 0,
-  setOffset: (t) => setProjectField('offset', t),
-});
 
 const understanding = createUnderstanding({
   words: $('#insWords'), editor: $('#pronEditor'), sounds: $('#soundsList'), summary: $('#textSummary'),
@@ -403,7 +389,6 @@ function setProjectField(field, value) {
   const p = current();
   p[field] = value;
   p.updatedAt = Date.now();
-  if (field === 'bpm') player.setBpmDisplay(value);
   save();
 }
 
@@ -419,7 +404,6 @@ function openProject(id) {
   const p = current();
   editor.setText(p.text);
   sidebar.closeEdit();
-  player.setBpmDisplay(p.bpm);
   inspector.resetRhymeInput();
   sidebar.renderProjects(state.projects, state.currentId);
   store.saveCurrentId(id);
@@ -477,12 +461,7 @@ $('#legend').innerHTML = ['a', 'e', 'E', 'i', 'o', 'u', 'y', 'eu', 'an', 'in', '
 
 /* ====================== Raccourcis clavier ====================== */
 window.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.code === 'Space') { e.preventDefault(); player.togglePlay(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save.flush(); return; }
-  if (e.altKey && !e.ctrlKey && !e.metaKey) {
-    const map = { KeyA: () => player.setA(), KeyB: () => player.setB(), KeyL: () => player.toggleLoop(), KeyT: () => player.tap() };
-    if (map[e.code]) { e.preventDefault(); map[e.code](); }
-  }
 }, true);
 
 /* ====================== Drag & drop ====================== */
@@ -497,7 +476,6 @@ window.addEventListener('drop', async (e) => {
   overlay.classList.remove('show');
   const file = e.dataTransfer?.files?.[0];
   if (!file) return;
-  if (isAudioFile(file)) { player.loadFile(file); return; }
   if (/\.(txt|md)$/i.test(file.name) || file.type.startsWith('text/')) {
     const p = store.newProject({ title: file.name.replace(/\.\w+$/, ''), text: await file.text(), bpm: current()?.bpm || 90 });
     state.projects.push(p);
@@ -533,11 +511,6 @@ function showIdeas() {
   else app.dataset.left = 'ideas';
   ideasTabs?.show('bank');
 }
-
-$('#btnPlMore').addEventListener('click', () => {
-  const open = $('#player').classList.toggle('open');
-  $('#btnPlMore').setAttribute('aria-expanded', String(open));
-});
 
 // Hauteur réellement visible (iOS ne redimensionne pas la page quand le clavier s'ouvre)
 const vv = window.visualViewport;

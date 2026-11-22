@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#14171c">
+  <meta name="theme-color" content="#1A00B0">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,10 +12,12 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <title>Flow &amp; Rimes Matrix</title>
-  <meta name="description" content="IDE d'écriture rap français : syllabes, rimes, multis, répétitions et calage sur l'instru.">
+  <meta name="description" content="IDE d'écriture rap français : syllabes, rimes, multis, allitérations, répétitions et IA d'écriture.">
+  <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+<div class="bg-blobs" aria-hidden="true"><div class="blob b1"><i class="ht"></i></div><div class="blob b2"><i class="ht"></i></div></div>
 <div id="app" data-view="write">
 
   <!-- ============ Barre supérieure ============ -->
@@ -232,43 +234,6 @@
     </section>
   </aside>
 
-  <!-- ============ Lecteur audio ============ -->
-  <footer class="player" id="player">
-    <div class="pl-file">
-      <button class="btn" id="btnLoad" title="Importer une instru (.mp3, .wav)">♫ Instru</button>
-      <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac" hidden>
-      <span class="track" id="trackName">Glisse un .mp3 / .wav ici</span>
-    </div>
-    <div class="pl-transport">
-      <button class="btn btn-play" id="btnPlay" title="Lecture / pause (Ctrl+Espace)" disabled>▶</button>
-      <span class="time mono" id="time">0:00 / 0:00</span>
-    </div>
-    <div class="pl-wave" id="waveWrap" title="Clic : se placer · Maj+glisser : définir la boucle">
-      <canvas id="wave"></canvas>
-    </div>
-    <div class="pl-loop">
-      <button class="btn btn-sm more-only" id="btnA" title="Point A (Alt+A)">A</button>
-      <button class="btn btn-sm more-only" id="btnB" title="Point B (Alt+B)">B</button>
-      <button class="btn btn-sm tgl" id="btnLoop" aria-pressed="false" title="Boucle A/B (Alt+L)">⟲</button>
-      <button class="btn btn-sm" id="btnBars4" title="Boucle de 4 mesures depuis la mesure en cours">4m</button>
-      <button class="btn btn-sm more-only" id="btnBars8" title="Boucle de 8 mesures depuis la mesure en cours">8m</button>
-      <span class="loop-info mono small more-only" id="loopInfo"></span>
-      <button class="btn btn-sm btn-more" id="btnPlMore" aria-expanded="false" title="Plus de réglages">⋯</button>
-    </div>
-    <div class="pl-tempo more-only">
-      <button class="btn btn-sm" id="btnTap" title="Tap tempo (Alt+T)">TAP</button>
-      <span class="bpm mono" id="bpmDisplay">90</span>
-      <div class="metro" id="metro" aria-label="Métronome visuel">
-        <i data-b="1"></i><i data-b="2"></i><i data-b="3"></i><i data-b="4"></i>
-      </div>
-      <span class="bar mono small" id="barInfo">M1</span>
-      <button class="btn btn-sm" id="btnDownbeat" title="Caler le temps 1 sur la position actuelle">1↓</button>
-      <button class="btn btn-sm tgl" id="btnMetro" aria-pressed="false" title="Métronome sans instru">Métro</button>
-      <button class="btn btn-sm tgl" id="btnClick" aria-pressed="false" title="Clic sonore">Clic</button>
-    </div>
-    <audio id="audio" preload="auto"></audio>
-  </footer>
-
   <!-- ============ Navigation mobile ============ -->
   <nav class="tabbar" id="tabbar" aria-label="Navigation">
     <button data-view="projects" aria-selected="false"><span class="ti">☰</span>Textes</button>
@@ -287,7 +252,7 @@
   <div class="sheet-body" id="suggestBody"></div>
 </section>
 
-<div class="drop-overlay" id="dropOverlay"><div>Dépose ton instru (.mp3 / .wav) ou un .txt</div></div>
+<div class="drop-overlay" id="dropOverlay"><div>Dépose un .txt pour l'importer</div></div>
 
 <script type="module" src="js/main.js"></script>
 </body>

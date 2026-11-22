@@ -2,18 +2,19 @@
  * - code (html/js/css) : réseau d'abord (toujours à jour en ligne), cache en secours
  * - dictionnaire et icônes : cache d'abord (gros fichiers qui ne changent presque jamais)
  * Incrémenter VERSION force le renouvellement du cache (surtout si data/lexique.json change). */
-const VERSION = 'v13';
+const VERSION = 'v14';
 const CACHE = `flow-matrix-${VERSION}`;
 
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/styles.css',
+  'fonts/space-grotesk-latin.woff2',
   'icons/icon.svg', 'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'js/main.js',
   'js/engine/analyzer.js', 'js/engine/consonance.js', 'js/engine/themes.js', 'js/engine/figures.js',
   'js/engine/ideas.js', 'js/engine/project.js', 'js/engine/exceptions.js', 'js/engine/lexicon.js', 'js/engine/numbers.js',
   'js/engine/phonetics.js', 'js/engine/repetition.js', 'js/engine/rhymeDictionary.js', 'js/engine/rules.js',
   'js/engine/stopwords.js', 'js/engine/syllabify.js',
-  'js/store/storage.js', 'js/ui/editor.js', 'js/ui/inspector.js', 'js/ui/player.js', 'js/ui/sidebar.js', 'js/ui/ideas.js', 'js/ui/overview.js', 'js/ui/understanding.js', 'js/ui/tabs.js',
+  'js/store/storage.js', 'js/ui/editor.js', 'js/ui/inspector.js', 'js/ui/sidebar.js', 'js/ui/ideas.js', 'js/ui/overview.js', 'js/ui/understanding.js', 'js/ui/tabs.js',
   'js/ui/analysis.js', 'js/ui/aisettings.js', 'js/ui/suggest.js', 'js/ui/references.js', 'js/app/assistant.js',
   'js/ai/client.js', 'js/ai/prompts.js', 'js/ai/features.js', 'vendor/anthropic-sdk.js',
   'js/utils/dom.js',
@@ -64,5 +65,5 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  e.respondWith(/\/(data|icons)\//.test(url.pathname) ? cacheFirst(req) : networkFirst(req));
+  e.respondWith(/\/(data|icons|fonts)\//.test(url.pathname) ? cacheFirst(req) : networkFirst(req));
 });
