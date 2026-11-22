@@ -71,11 +71,12 @@ export function analyzeText(text, opts = {}) {
   const o = { ...DEFAULT_OPTS, mode: 'assonances', ...opts };
   const lines = text.split('\n').map((t, i) => analyzeLine(t, i, o));
 
-  // Séquence des lignes de texte (hors vides/titres), groupées par section ([Couplet], [Refrain]…)
+  // Séquence des lignes de texte (hors vides/titres), groupées par bloc : un titre ([Couplet], [Refrain]…)
+  // ou une ligne vide ouvre un nouveau bloc. Les rimes ne sont cherchées qu'à l'intérieur d'un bloc.
   const seq = [];
   let group = 0;
   for (const l of lines) {
-    if (l.isMeta) { group++; continue; }
+    if (l.isMeta || l.isEmpty) { if (seq.length && seq.at(-1).group === group) group++; continue; }
     if (!l.isEmpty && l.words.length) seq.push({ line: l, group });
   }
 
